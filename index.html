@@ -11,141 +11,154 @@
   <!-- 📱 MOBILE FIX (ONLY ADDITION) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #fdf6ec;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+ <style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #fdf6ec;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh; /* FIX for mobile viewport */
+    overflow: hidden;
+  }
+
+  header {
+    background: hsl(35, 17%, 46%);
+    color: #fff;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .msg {
+    max-width: 65%;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 12px;
+    word-wrap: break-word;
+    font-size: 15px;
+  }
+
+  .me { background: hsl(61, 49%, 80%); align-self: flex-end; }
+  .other { background: #fff; border:1px solid #ddd; }
+
+  .meta { font-size: 10px; opacity: 0.6; }
+
+  #inputBox {
+    display: flex;
+    padding: 10px;
+    background: #1c1c1c;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 20px;
+    border: none;
+    font-size: 16px; /* IMPORTANT for mobile */
+    outline: none;
+  }
+
+  button {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: hwb(36 69% 0% / 0.722);
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  #menu {
+    display:none;
+    position:absolute;
+    right:10px;
+    top:50px;
+    background:white;
+    color:black;
+    padding:10px;
+    border-radius:10px;
+    z-index:999;
+  }
+
+  video {
+    max-width: 200px;
+    border-radius: 10px;
+  }
+
+  #namePopup {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding: 20px;
+  }
+
+  #namePopup div {
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  #onlineCount {
+    font-size:12px;
+    opacity:0.8;
+    margin-left:10px;
+  }
+
+  /* 🔥 REAL MOBILE FIX (NOT JUST SCALING) */
+  @media (max-width: 600px) {
 
     header {
-      background: hsl(35, 17%, 46%);
-      color: #fff;
-      padding: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 10px;
+      font-size: 14px;
     }
 
     #chat {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
+      padding: 10px;
     }
 
     .msg {
-      max-width: 65%;
-      padding: 10px;
-      margin: 6px 0;
-      border-radius: 12px;
-    }
-
-    .me { background: hsl(61, 49%, 80%); align-self: flex-end; }
-    .other { background: #fff; border:1px solid #ddd; }
-
-    .meta { font-size: 10px; opacity: 0.6; }
-
-    #inputBox {
-      display: flex;
-      padding: 10px;
-      background: #1c1c1c;
-      align-items: center;
+      max-width: 88%;
+      font-size: 14px;
+      padding: 9px;
     }
 
     input {
-      flex: 1;
+      font-size: 15px;
       padding: 10px;
-      border-radius: 20px;
-      border: none;
     }
 
     button {
-      margin-left: 8px;
-      padding: 10px;
-      border-radius: 50%;
-      border: none;
-      background: hwb(36 69% 0% / 0.722);
-      color: white;
-      cursor: pointer;
+      width: 40px;
+      height: 40px;
     }
 
-    #menu {
-      display:none;
-      position:absolute;
-      right:10px;
-      top:50px;
-      background:white;
-      color:black;
-      padding:10px;
-      border-radius:10px;
-      z-index:999;
+    video {
+      max-width: 160px;
     }
-
-    video { max-width: 200px; border-radius: 10px; }
-
-    #namePopup {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.6);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-
-    #namePopup div {
-      background:white;
-      padding:20px;
-      border-radius:10px;
-    }
-
-    #onlineCount {
-      font-size:12px;
-      opacity:0.8;
-      margin-left:10px;
-    }
-
-    /* 📱 ONLY MOBILE RESPONSIVE ADD-ON */
-    @media (max-width: 600px) {
-
-      header {
-        padding: 10px;
-        font-size: 14px;
-      }
-
-      #chat {
-        padding: 10px;
-      }
-
-      .msg {
-        max-width: 85%;
-        font-size: 14px;
-      }
-
-      #inputBox {
-        padding: 8px;
-      }
-
-      input {
-        font-size: 14px;
-      }
-
-      button {
-        min-width: 40px;
-        min-height: 40px;
-      }
-
-      video {
-        max-width: 160px;
-      }
-
-    }
-
-  </style>
+  }
+</style>
 </head>
 
 <body>
