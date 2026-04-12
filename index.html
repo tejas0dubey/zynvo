@@ -8,6 +8,9 @@
   <link rel="apple-touch-icon" href="icon.png">
   <meta name="theme-color" content="#1c1c1c">
 
+  <!-- ✅ ADDED FOR MOBILE (NEW ONLY) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
       margin: 0;
@@ -105,6 +108,57 @@
       opacity:0.8;
       margin-left:10px;
     }
+
+    /* 🔥 ADDED MOBILE RESPONSIVE LAYER (NO LOGIC CHANGED) */
+    @media screen and (max-width: 768px) {
+
+      body {
+        overflow-x: hidden;
+      }
+
+      header {
+        padding: 15px !important;
+      }
+
+      #chat {
+        padding: 10px !important;
+      }
+
+      .msg {
+        max-width: 85% !important;
+        padding: 15px !important;
+        border-radius: 20px !important;
+      }
+
+      #inputBox {
+        padding: 10px !important;
+      }
+
+      input {
+        padding: 15px !important;
+        border-radius: 30px !important;
+        font-size: 14px !important;
+      }
+
+      button {
+        padding: 15px !important;
+        border-radius: 50% !important;
+      }
+
+      h1, span {
+        font-size: 14px !important;
+      }
+
+      video, img {
+        max-width: 100% !important;
+      }
+
+      #menu {
+        right: 5px !important;
+        top: 60px !important;
+      }
+    }
+
   </style>
 </head>
 
