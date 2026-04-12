@@ -7,8 +7,6 @@
   <link rel="apple-touch-icon" href="icon.png">
   <meta name="theme-color" content="#1c1c1c">
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <style>
     body {
       margin: 0;
@@ -17,18 +15,15 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
     }
 
     header {
       background: hsl(35, 17%, 46%);
       color: #fff;
-      padding: 18px;
+      padding: 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 18px;
     }
 
     #chat {
@@ -40,63 +35,54 @@
     }
 
     .msg {
-      max-width: 75%;
-      padding: 14px;
-      margin: 8px 0;
-      border-radius: 14px;
-      font-size: 16px;
-      line-height: 1.4;
+      max-width: 65%;
+      padding: 10px;
+      margin: 6px 0;
+      border-radius: 12px;
     }
 
     .me { background: hsl(61, 49%, 80%); align-self: flex-end; }
     .other { background: #fff; border:1px solid #ddd; }
 
-    .meta { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+    .meta { font-size: 10px; opacity: 0.6; }
 
     #inputBox {
       display: flex;
-      padding: 14px;
+      padding: 10px;
       background: #1c1c1c;
       align-items: center;
-      gap: 8px;
     }
 
     input {
       flex: 1;
-      padding: 14px;
-      border-radius: 25px;
+      padding: 10px;
+      border-radius: 20px;
       border: none;
-      font-size: 16px;
-      outline: none;
     }
 
     button {
-      width: 46px;
-      height: 46px;
+      margin-left: 8px;
+      padding: 10px;
       border-radius: 50%;
       border: none;
       background: hwb(36 69% 0% / 0.722);
       color: white;
       cursor: pointer;
-      font-size: 18px;
     }
 
     #menu {
       display:none;
       position:absolute;
       right:10px;
-      top:55px;
+      top:50px;
       background:white;
       color:black;
-      padding:12px;
+      padding:10px;
       border-radius:10px;
       z-index:999;
     }
 
-    video {
-      max-width: 220px;
-      border-radius: 10px;
-    }
+    video { max-width: 200px; border-radius: 10px; }
 
     #namePopup {
       position:fixed;
@@ -105,23 +91,19 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      padding: 20px;
     }
 
     #namePopup div {
       background:white;
-      padding:22px;
+      padding:20px;
       border-radius:10px;
-      width: 100%;
-      max-width: 340px;
     }
 
     #onlineCount {
-      font-size:13px;
+      font-size:12px;
       opacity:0.8;
       margin-left:10px;
     }
-
   </style>
 </head>
 
@@ -129,7 +111,7 @@
 
 <header>
   <div style="display:flex;align-items:center;gap:10px;">
-    <img src="icon.png" style="width:35px;height:35px;border-radius:8px;">
+    <img src="icon.png" style="width:30px;height:30px;border-radius:8px;">
     <span>Zynvo</span>
     <span id="onlineCount"></span>
   </div>
@@ -143,7 +125,7 @@
 
 <div id="namePopup">
   <div>
-    <h2>Enter Name</h2>
+    <h3>Enter Name</h3>
     <input id="nameInput"><br><br>
     <button onclick="setName()">Join</button>
   </div>
@@ -169,7 +151,7 @@ import { getDatabase, ref, set, onValue, onDisconnect }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
+  apiKey: "AIzaSyClBCl...",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat"
 };
@@ -185,7 +167,6 @@ const camera = document.getElementById("camera");
 
 const sendSound = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
 const receiveSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
-const typingSound = new Audio("https://www.soundjay.com/mechanical/sounds/keyboard-1.mp3");
 
 let room = localStorage.getItem("room") || prompt("Room:");
 localStorage.setItem("room", room);
@@ -202,7 +183,8 @@ onDisconnect(userRef).remove();
 
 const onlineRef = ref(rtdb, "online");
 onValue(onlineRef, snapshot => {
-  const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+  const val = snapshot.val();
+  const count = val ? Object.keys(val).length : 0;
   document.getElementById("onlineCount").innerText = "🟢 " + count + " online";
 });
 
@@ -232,27 +214,27 @@ window.changeName=()=>{
 }
 
 window.openMenu = ()=>{
-  const choice = prompt("1 Image\n2 Camera\n3 Voice\n4 Video");
+  const choice = prompt("1 Image\n2 Camera");
 
   if(choice=="1") imgInput.click();
   if(choice=="2") startCamera();
-  if(choice=="3") recordVoice();
-  if(choice=="4") selectVideo();
 };
 
 imgInput.onchange = ()=>{
   const file = imgInput.files[0];
   const reader = new FileReader();
+
   reader.onload = async ()=>{
     await addDoc(collection(db,"messages"),{
-      image:reader.result,
+      image:reader.result || "",
       user:username,
       time:Date.now(),
       room:room,
-      expiresAt:0   // FIX: no accidental removal
+      expiresAt:0
     });
     sendSound.play();
   };
+
   reader.readAsDataURL(file);
 };
 
@@ -283,63 +265,6 @@ async function startCamera(){
   },2000);
 }
 
-// ✅ VOICE FIX
-async function recordVoice(){
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-
-  const recorder = new MediaRecorder(stream, {
-    mimeType: "audio/webm;codecs=opus"
-  });
-
-  let chunks=[];
-
-  recorder.ondataavailable=e=>chunks.push(e.data);
-
-  recorder.onstop=async ()=>{
-    const blob = new Blob(chunks, { type: "audio/webm" });
-
-    const reader=new FileReader();
-    reader.onload=async ()=>{
-      await addDoc(collection(db,"messages"),{
-        audio:reader.result,
-        user:username,
-        time:Date.now(),
-        room:room,
-        expiresAt:0
-      });
-      sendSound.play();
-    };
-    reader.readAsDataURL(blob);
-  };
-
-  recorder.start();
-  setTimeout(()=>recorder.stop(),3000);
-}
-
-function selectVideo(){
-  const input=document.createElement("input");
-  input.type="file";
-  input.accept="video/*";
-
-  input.onchange=()=>{
-    const file=input.files[0];
-    const reader=new FileReader();
-
-    reader.onload=async ()=>{
-      await addDoc(collection(db,"messages"),{
-        video:reader.result,
-        user:username,
-        time:Date.now(),
-        room:room,
-        expiresAt:0   // FIX: prevent deletion bug
-      });
-      sendSound.play();
-    };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
 window.sendMsg = async ()=>{
   const text=input.value.trim();
   if(!text) return;
@@ -349,18 +274,14 @@ window.sendMsg = async ()=>{
     user:username,
     time:Date.now(),
     room:room,
-    expiresAt:300000
+    expiresAt:Date.now()+300000
   });
 
   sendSound.play();
   input.value="";
 };
 
-input.addEventListener("input", ()=>{
-  typingSound.currentTime = 0;
-  typingSound.play().catch(()=>{});
-});
-
+/* 🔥 FIXED RENDER (ONLY SAFE FIXES) */
 const q=query(collection(db,"messages"),orderBy("time"));
 
 onSnapshot(q,snap=>{
@@ -368,10 +289,7 @@ onSnapshot(q,snap=>{
 
   snap.forEach(doc=>{
     const msg=doc.data();
-    if(msg.room!==room) return;
-
-    // FIXED SAFE CHECK
-    if(msg.expiresAt && msg.expiresAt !== 0 && Date.now()>msg.expiresAt) return;
+    if(!msg || msg.room!==room) return;
 
     const div=document.createElement("div");
 
@@ -384,22 +302,33 @@ onSnapshot(q,snap=>{
 
     div.className="msg "+(msg.user===username?"me":"other");
 
-    let tick = msg.user === username ? " ✔✔" : "";
-    let html=`<b>${msg.user}</b><br>${msg.text||""}`;
+    let html=`<b>${msg.user || "User"}</b><br>`;
 
-    if(msg.image) html+=`<br><img src="${msg.image}">`;
-    if(msg.audio) html+=`<br><audio controls src="${msg.audio}"></audio>`;
-    if(msg.video) html+=`<br><video controls src="${msg.video}"></video>`;
+    if(msg.text) html+=msg.text;
 
-    html+=`<div class="meta">${new Date(msg.time).toLocaleTimeString()}${tick}</div>`;
+    if(msg.image){
+      html+=`<br><img src="${msg.image}" style="max-width:100%;border-radius:10px;">`;
+    }
+
+    if(msg.audio){
+      html+=`<br><audio controls preload="metadata" src="${msg.audio}"></audio>`;
+    }
+
+    if(msg.video){
+      html+=`
+      <br>
+      <video controls preload="metadata">
+        <source src="${msg.video}" type="video/mp4">
+      </video>`;
+    }
+
+    html+=`<div class="meta">${new Date(msg.time||Date.now()).toLocaleTimeString()}</div>`;
 
     div.innerHTML=html;
     chat.appendChild(div);
-
-    if(msg.user !== username) receiveSound.play();
   });
 
-  chat.scrollTop=chat.scrollHeight;
+  chat.scrollTop = chat.scrollHeight;
 });
 </script>
 
