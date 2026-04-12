@@ -158,6 +158,35 @@
         top: 60px !important;
       }
     }
+    /* 📱 FIX FULL SCREEN + INPUT ALWAYS VISIBLE */
+@media screen and (max-width: 768px) {
+
+  body {
+    height: 100dvh !important; /* real mobile height */
+  }
+
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px !important;
+  }
+
+  #inputBox {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    padding: 10px !important;
+    z-index: 10;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 15px !important;
+  }
+
+}
 
   </style>
 </head>
