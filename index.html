@@ -3,7 +3,6 @@
 <head>
   <title>Zynvo</title>
 
-  <!-- 📱 MOBILE VIEW -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -156,7 +155,8 @@
   <button onclick="pickImage()">➕</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-  <input type="file" id="file" accept="image/*">
+  <!-- ✅ UPDATED -->
+  <input type="file" id="file" accept="image/*,application/pdf">
 </div>
 
 <script type="module">
@@ -199,7 +199,7 @@ window.changeName = () => {
   location.reload();
 };
 
-// 🔥 CLEAR CHAT FOR EVERYONE
+// CLEAR CHAT
 window.clearChat = async () => {
   const confirmClear = confirm("Clear chat for everyone?");
   if (!confirmClear) return;
@@ -211,7 +211,7 @@ window.clearChat = async () => {
   });
 };
 
-// 🟢 ONLINE USERS
+// ONLINE SYSTEM
 setInterval(()=>{
   setDoc(doc(db,"users",username),{
     name: username,
@@ -227,31 +227,27 @@ onSnapshot(collection(db,"users"), snap=>{
   });
   onlineDiv.innerText = "🟢 " + count + " online";
 });
-// 🟢 ONLINE SYSTEM (IMPROVED)
+
 setInterval(async () => {
   await setDoc(doc(db, "users", username), {
     name: username,
     lastSeen: Date.now()
   });
-}, 2000); // faster update
+}, 2000);
 
-// 🟢 COUNT ONLINE USERS (REAL-TIME FIX)
 onSnapshot(collection(db, "users"), snap => {
   let count = 0;
   const now = Date.now();
 
   snap.forEach(d => {
     const u = d.data();
-
-    // 🔥 STRICT ACTIVE CHECK
-    if (u.lastSeen && (now - u.lastSeen < 7000)) {
-      count++;
-    }
+    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
   });
 
   onlineDiv.innerText = "🟢 " + count + " online";
 });
-// IMAGE
+
+// FILE (IMAGE + PDF)
 window.pickImage = () => fileInput.click();
 
 fileInput.onchange = () => {
@@ -259,12 +255,24 @@ fileInput.onchange = () => {
   const reader = new FileReader();
 
   reader.onload = async () => {
-    await addDoc(collection(db, "messages"), {
-      image: reader.result,
-      user: username,
-      time: Date.now(),
-      seen: false
-    });
+
+    if (file.type === "application/pdf") {
+      await addDoc(collection(db, "messages"), {
+        pdf: reader.result,
+        fileName: file.name,
+        user: username,
+        time: Date.now(),
+        seen: false
+      });
+    } else {
+      await addDoc(collection(db, "messages"), {
+        image: reader.result,
+        user: username,
+        time: Date.now(),
+        seen: false
+      });
+    }
+
   };
 
   reader.readAsDataURL(file);
@@ -306,6 +314,17 @@ onSnapshot(q, snapshot => {
 
     if (msg.text) html += `<div>${msg.text}</div>`;
     if (msg.image) html += `<img src="${msg.image}">`;
+
+    // ✅ PDF DISPLAY
+    if (msg.pdf) {
+      html += `
+        <div style="margin-top:5px;">
+          📄 <a href="${msg.pdf}" target="_blank">
+            ${msg.fileName || "Open PDF"}
+          </a>
+        </div>
+      `;
+    }
 
     html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
 
