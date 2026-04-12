@@ -227,7 +227,30 @@ onSnapshot(collection(db,"users"), snap=>{
   });
   onlineDiv.innerText = "🟢 " + count + " online";
 });
+// 🟢 ONLINE SYSTEM (IMPROVED)
+setInterval(async () => {
+  await setDoc(doc(db, "users", username), {
+    name: username,
+    lastSeen: Date.now()
+  });
+}, 2000); // faster update
 
+// 🟢 COUNT ONLINE USERS (REAL-TIME FIX)
+onSnapshot(collection(db, "users"), snap => {
+  let count = 0;
+  const now = Date.now();
+
+  snap.forEach(d => {
+    const u = d.data();
+
+    // 🔥 STRICT ACTIVE CHECK
+    if (u.lastSeen && (now - u.lastSeen < 7000)) {
+      count++;
+    }
+  });
+
+  onlineDiv.innerText = "🟢 " + count + " online";
+});
 // IMAGE
 window.pickImage = () => fileInput.click();
 
@@ -301,6 +324,7 @@ onSnapshot(q, snapshot => {
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
+  
 </script>
 
 </body>
