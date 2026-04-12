@@ -3,14 +3,6 @@
 <head>
   <title>Zynvo</title>
 
-  <!-- ✅ ICON -->
-  <link rel="icon" type="image/png" href="icon.png">
-  <link rel="apple-touch-icon" href="icon.png">
-  <meta name="theme-color" content="#1c1c1c">
-
-  <!-- ✅ ADDED FOR MOBILE (NEW ONLY) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <style>
     body {
       margin: 0;
@@ -22,452 +14,237 @@
     }
 
     header {
-      background: hsl(35, 17%, 46%);
+      background: #1c1c1c;
       color: #fff;
-      padding: 40px;
+      padding: 12px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+    }
+
+    #online {
+      font-size: 12px;
+      color: #9cff9c;
     }
 
     #chat {
       flex: 1;
       overflow-y: auto;
-      padding: 30px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
     }
 
     .msg {
-      max-width: 65%;
-      padding: 30px;
+      max-width: 70%;
+      padding: 8px;
       margin: 6px 0;
-      border-radius: 36px;
+      border-radius: 10px;
+      position: relative;
     }
 
-    .me { background: hsl(61, 49%, 80%); align-self: flex-end; }
-    .other { background: #fff; border:1px solid #ddd; }
+    .me {
+      background: #d1f7c4;
+      align-self: flex-end;
+    }
 
-    .meta { font-size: 10px; opacity: 0.6; }
+    .other {
+      background: #fff;
+      border: 1px solid #ddd;
+      align-self: flex-start;
+    }
+
+    .name {
+      font-size: 11px;
+      opacity: 0.6;
+    }
+
+    .time {
+      font-size: 10px;
+      opacity: 0.5;
+    }
+
+    .tick {
+      font-size: 11px;
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+      opacity: 0.6;
+    }
+
+    img {
+      max-width: 200px;
+      border-radius: 10px;
+      margin-top: 5px;
+    }
 
     #inputBox {
       display: flex;
-      padding: 30px;
+      padding: 10px;
       background: #1c1c1c;
-      align-items: center;
     }
 
     input {
       flex: 1;
-      padding: 40px;
-      border-radius: 80px;
+      padding: 10px;
+      border-radius: 20px;
       border: none;
+      outline: none;
     }
 
     button {
-      margin-left: 8px;
-      padding: 40px;
+      margin-left: 6px;
+      padding: 10px;
       border-radius: 50%;
       border: none;
-      background: hwb(36 69% 0% / 0.722);
+      background: #25d366;
       color: white;
       cursor: pointer;
     }
 
-    #menu {
-      display:none;
-      position:absolute;
-      right:10px;
-      top:50px;
-      background:white;
-      color:black;
-      padding:10px;
-      border-radius:10px;
-      z-index:999;
+    #file {
+      display: none;
     }
-
-    video { max-width: 200px; border-radius: 10px; }
-
-    #namePopup {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.6);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-
-    #namePopup div {
-      background:white;
-      padding:20px;
-      border-radius:30px;
-    }
-
-    #onlineCount {
-      font-size:12px;
-      opacity:0.8;
-      margin-left:10px;
-    }
-
-    /* 🔥 ADDED MOBILE RESPONSIVE LAYER (NO LOGIC CHANGED) */
-    @media screen and (max-width: 768px) {
-
-      body {
-        overflow-x: hidden;
-      }
-
-      header {
-        padding: 15px !important;
-      }
-
-      #chat {
-        padding: 10px !important;
-      }
-
-      .msg {
-        max-width: 85% !important;
-        padding: 15px !important;
-        border-radius: 20px !important;
-      }
-
-      #inputBox {
-        padding: 10px !important;
-      }
-
-      input {
-        padding: 15px !important;
-        border-radius: 30px !important;
-        font-size: 14px !important;
-      }
-
-      button {
-        padding: 15px !important;
-        border-radius: 50% !important;
-      }
-
-      h1, span {
-        font-size: 14px !important;
-      }
-
-      video, img {
-        max-width: 100% !important;
-      }
-
-      #menu {
-        right: 5px !important;
-        top: 60px !important;
-      }
-    }
-    /* 📱 FIX FULL SCREEN + INPUT ALWAYS VISIBLE */
-@media screen and (max-width: 768px) {
-
-  body {
-    height: 100dvh !important; /* real mobile height */
-  }
-
-  #chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px !important;
-  }
-
-  #inputBox {
-    position: sticky;
-    bottom: 0;
-    width: 100%;
-    padding: 10px !important;
-    z-index: 10;
-  }
-
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    padding: 15px !important;
-  }
-
-}
-
   </style>
 </head>
 
 <body>
 
 <header>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <img src="icon.png" style="width:30px;height:30px;border-radius:8px;">
-    <span>Zynvo</span>
-    <span id="onlineCount"></span>
-  </div>
-  <span onclick="toggleMenu()" style="cursor:pointer;">⋮</span>
+  <div>Zynvo</div>
+  <div id="online">🟢 0 online</div>
 </header>
-
-<div id="menu">
-  <div onclick="clearChat()">🗑️ Clear Chat</div>
-  <div onclick="changeName()">👤 Change Name</div>
-</div>
-
-<div id="namePopup">
-  <div>
-    <h3>Enter Name</h3>
-    <input id="nameInput"><br><br>
-    <button onclick="setName()">Join</button>
-  </div>
-</div>
 
 <div id="chat"></div>
 
 <div id="inputBox">
-  <button onclick="openMenu()">➕</button>
-  <input id="msgInput" placeholder="Message..." />
-  <input type="file" id="imgInput" style="display:none;">
+  <button onclick="pickImage()">➕</button>
+  <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
+  <input type="file" id="file" accept="image/*">
 </div>
-
-<video id="camera" autoplay style="display:none;"></video>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } 
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc } 
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ✅ NEW (does NOT affect old logic)
-import { getDatabase, ref, set, onValue, onDisconnect } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
+// ✅ YOUR CONFIG ADDED
 const firebaseConfig = {
   apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
-  projectId: "anantdhamchat"
+  projectId: "anantdhamchat",
+  storageBucket: "anantdhamchat.firebasestorage.app",
+  messagingSenderId: "543392456660",
+  appId: "1:543392456660:web:c95fcddcd6ee603ea04041"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🟢 NEW (independent system)
-const rtdb = getDatabase(app);
-
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
-const imgInput = document.getElementById("imgInput");
-const camera = document.getElementById("camera");
+const fileInput = document.getElementById("file");
+const onlineDiv = document.getElementById("online");
 
-// 🔊 SOUNDS
-const sendSound = new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3");
-const receiveSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
-const typingSound = new Audio("https://www.soundjay.com/mechanical/sounds/keyboard-1.mp3");
-
-let room = localStorage.getItem("room") || prompt("Room:");
-localStorage.setItem("room", room);
-
+// USER
 let username = localStorage.getItem("username");
-if (username) document.getElementById("namePopup").style.display="none";
+if (!username) {
+  username = prompt("Enter your name:");
+  localStorage.setItem("username", username);
+}
 
-// 🟢 ONLINE PRESENCE (SAFE ADD)
-const userId = Math.random().toString(36).slice(2);
-const userRef = ref(rtdb, "online/" + userId);
+// 🟢 ONLINE SYSTEM
+setInterval(()=>{
+  setDoc(doc(db,"users",username),{
+    name: username,
+    online: true,
+    lastSeen: Date.now()
+  });
+},3000);
 
-set(userRef, { name: username || "anon" });
-onDisconnect(userRef).remove();
-
-const onlineRef = ref(rtdb, "online");
-onValue(onlineRef, snapshot => {
-  const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-  document.getElementById("onlineCount").innerText = "🟢 " + count + " online";
+// COUNT ONLINE
+onSnapshot(collection(db,"users"), snap=>{
+  let count = 0;
+  snap.forEach(d=>{
+    const u = d.data();
+    if(Date.now() - u.lastSeen < 5000) count++;
+  });
+  onlineDiv.innerText = "🟢 " + count + " online";
 });
 
-window.setName = async ()=>{
-  username = document.getElementById("nameInput").value;
-  localStorage.setItem("username", username);
-  document.getElementById("namePopup").style.display="none";
-
-  await addDoc(collection(db,"messages"),{
-    system:true,
-    text: username+" joined",
-    time:Date.now(),
-    room:room
-  });
-};
-
-// MENU
-window.toggleMenu=()=>{
-  const m=document.getElementById("menu");
-  m.style.display=m.style.display==="block"?"none":"block";
-}
-
-window.clearChat=()=>{ chat.innerHTML=""; }
-
-window.changeName=()=>{
-  localStorage.removeItem("username");
-  location.reload();
-}
-
-// ➕ MENU
-window.openMenu = ()=>{
-  const choice = prompt("1 Image\n2 Camera\n3 Voice\n4 Video");
-
-  if(choice=="1") imgInput.click();
-  if(choice=="2") startCamera();
-  if(choice=="3") recordVoice();
-  if(choice=="4") selectVideo();
-};
-
 // IMAGE
-imgInput.onchange = ()=>{
-  const file = imgInput.files[0];
+window.pickImage = () => fileInput.click();
+
+fileInput.onchange = () => {
+  const file = fileInput.files[0];
   const reader = new FileReader();
-  reader.onload = async ()=>{
-    await addDoc(collection(db,"messages"),{
-      image:reader.result,
-      user:username,
-      time:Date.now(),
-      room:room,
-      expiresAt:Date.now()+3600000
+
+  reader.onload = async () => {
+    await addDoc(collection(db, "messages"), {
+      image: reader.result,
+      user: username,
+      time: Date.now(),
+      seen: false
     });
-    sendSound.play();
   };
+
   reader.readAsDataURL(file);
 };
 
-// CAMERA
-async function startCamera(){
-  camera.style.display="block";
-  const stream = await navigator.mediaDevices.getUserMedia({video:true});
-  camera.srcObject = stream;
-
-  setTimeout(async ()=>{
-    const canvas = document.createElement("canvas");
-    canvas.width = camera.videoWidth;
-    canvas.height = camera.videoHeight;
-    canvas.getContext("2d").drawImage(camera,0,0);
-
-    const img = canvas.toDataURL();
-
-    await addDoc(collection(db,"messages"),{
-      image:img,
-      user:username,
-      time:Date.now(),
-      room:room
-    });
-
-    stream.getTracks().forEach(t=>t.stop());
-    camera.style.display="none";
-    sendSound.play();
-  },2000);
-}
-
-// VOICE
-async function recordVoice(){
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  const recorder = new MediaRecorder(stream);
-  let chunks=[];
-
-  recorder.ondataavailable=e=>chunks.push(e.data);
-
-  recorder.onstop=async ()=>{
-    const blob=new Blob(chunks);
-    const reader=new FileReader();
-    reader.onload=async ()=>{
-      await addDoc(collection(db,"messages"),{
-        audio:reader.result,
-        user:username,
-        time:Date.now(),
-        room:room
-      });
-      sendSound.play();
-    };
-    reader.readAsDataURL(blob);
-  };
-
-  recorder.start();
-  setTimeout(()=>recorder.stop(),3000);
-}
-
-// VIDEO
-function selectVideo(){
-  const input=document.createElement("input");
-  input.type="file";
-  input.accept="video/*";
-  input.onchange=()=>{
-    const file=input.files[0];
-    const reader=new FileReader();
-    reader.onload=async ()=>{
-      await addDoc(collection(db,"messages"),{
-        video:reader.result,
-        user:username,
-        time:Date.now(),
-        room:room
-      });
-      sendSound.play();
-    };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
 // TEXT
-window.sendMsg = async ()=>{
-  const text=input.value.trim();
-  if(!text) return;
+window.sendMsg = async () => {
+  const text = input.value.trim();
+  if (!text) return;
 
-  await addDoc(collection(db,"messages"),{
+  await addDoc(collection(db, "messages"), {
     text,
-    user:username,
-    time:Date.now(),
-    room:room,
-    expiresAt:Date.now()+300000
+    user: username,
+    time: Date.now(),
+    seen: false
   });
 
-  sendSound.play();
-  input.value="";
+  input.value = "";
 };
 
-// TYPING SOUND
-input.addEventListener("input", ()=>{
-  typingSound.currentTime = 0;
-  typingSound.play().catch(()=>{});
-});
-
 // LOAD
-const q=query(collection(db,"messages"),orderBy("time"));
+const q = query(collection(db,"messages"), orderBy("time"), limit(50));
 
-onSnapshot(q,snap=>{
-  chat.innerHTML="";
+onSnapshot(q, snapshot => {
+  chat.innerHTML = "";
 
-  snap.forEach(doc=>{
-    const msg=doc.data();
-    if(msg.room!==room) return;
-    if(msg.expiresAt && Date.now()>msg.expiresAt) return;
+  snapshot.forEach(async docSnap => {
+    const msg = docSnap.data();
+    const id = docSnap.id;
 
-    const div=document.createElement("div");
-
-    if(msg.system){
-      div.innerText=msg.text;
-      div.style.textAlign="center";
-      chat.appendChild(div);
-      return;
+    // ✔ seen update
+    if(msg.user !== username && !msg.seen){
+      setDoc(doc(db,"messages",id),{ seen:true }, { merge:true });
     }
 
-    div.className="msg "+(msg.user===username?"me":"other");
+    const div = document.createElement("div");
+    div.className = "msg " + (msg.user === username ? "me" : "other");
 
-    // ✔✔ SEEN TICK (UI ONLY)
-    let tick = msg.user === username ? " ✔✔" : "";
+    let html = `<div class="name">${msg.user}</div>`;
 
-    let html=`<b>${msg.user}</b><br>${msg.text||""}`;
+    if (msg.text) html += `<div>${msg.text}</div>`;
+    if (msg.image) html += `<img src="${msg.image}">`;
 
-    if(msg.image) html+=`<br><img src="${msg.image}">`;
-    if(msg.audio) html+=`<br><audio controls src="${msg.audio}"></audio>`;
-    if(msg.video) html+=`<br><video controls src="${msg.video}"></video>`;
+    html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
 
-    html+=`<div class="meta">${new Date(msg.time).toLocaleTimeString()}${tick}</div>`;
+    if(msg.user === username){
+      html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
+    }
 
-    div.innerHTML=html;
+    div.innerHTML = html;
     chat.appendChild(div);
-
-    if(msg.user !== username) receiveSound.play();
   });
 
-  chat.scrollTop=chat.scrollHeight;
+  chat.scrollTop = chat.scrollHeight;
+});
+
+// ENTER
+input.addEventListener("keypress", e => {
+  if (e.key === "Enter") sendMsg();
 });
 </script>
 
