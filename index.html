@@ -227,9 +227,9 @@ db.collection("messages").orderBy("time").limit(50)
 
     // handle delete sync
     if (change.type === "removed") {
-      location.reload();
-    }
-
+  const el = document.getElementById(change.doc.id);
+  if (el) el.remove();
+  }
   });
 
 });
