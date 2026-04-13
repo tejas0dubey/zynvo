@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Zynvo Advanced Chat</title>
+  <title>Zynvo Chat Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -52,7 +52,6 @@
       align-self: center;
       background: #2a3942;
       font-size: 12px;
-      opacity: 0.8;
     }
 
     .name {
@@ -71,6 +70,16 @@
       bottom: 4px;
       right: 8px;
       font-size: 11px;
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 5px;
+    }
+
+    a {
+      color: #53bdeb;
     }
 
     #inputBox {
@@ -100,26 +109,33 @@
       cursor: pointer;
     }
 
+    #file {
+      display: none;
+    }
+
     #replyBox {
-      display:none;
-      padding:6px;
-      background:#1f2c34;
-      font-size:12px;
+      display: none;
+      padding: 6px;
+      background: #1f2c34;
+      font-size: 12px;
     }
   </style>
 </head>
 
 <body>
 
-<header>Zynvo Group Chat</header>
+<header>Zynvo Pro Chat</header>
 
 <div id="chat"></div>
 <div id="replyBox"></div>
 
 <div id="inputBox">
+  <button onclick="fileInput.click()">➕</button>
   <button onclick="startVoice()">🎤</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
+
+  <input type="file" id="file" accept="image/*,application/pdf">
 </div>
 
 <script>
@@ -133,6 +149,7 @@ const db = firebase.firestore();
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
+const fileInput = document.getElementById("file");
 const replyBox = document.getElementById("replyBox");
 
 let username = localStorage.getItem("username");
@@ -149,13 +166,13 @@ if (!username) {
 
 /* REPLY SYSTEM */
 let replyTo = null;
-window.setReply = (text, id) => {
-  replyTo = {text, id};
+window.setReply = (text) => {
+  replyTo = text;
   replyBox.style.display = "block";
-  replyBox.innerText = "Replying to: " + text;
+  replyBox.innerText = "Replying: " + text;
 };
 
-/* SEND */
+/* SEND TEXT */
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -179,7 +196,31 @@ window.deleteMsg = (id) => {
   db.collection("messages").doc(id).delete();
 };
 
-/* VOICE MESSAGE */
+/* FILE (IMAGE + PDF) */
+fileInput.onchange = () => {
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    let type = "file";
+
+    if (file.type.startsWith("image")) type = "image";
+    if (file.type === "application/pdf") type = "pdf";
+
+    db.collection("messages").add({
+      type,
+      data: reader.result,
+      fileName: file.name,
+      user: username,
+      time: Date.now(),
+      seenBy: [username]
+    });
+  };
+
+  reader.readAsDataURL(file);
+};
+
+/* VOICE */
 function startVoice() {
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
@@ -232,16 +273,30 @@ db.collection("messages")
 
     div.className = "msg " + (msg.user === username ? "me" : "");
 
+    if (msg.user !== username) {
+      db.collection("messages").doc(id).update({
+        seenBy: firebase.firestore.FieldValue.arrayUnion(username)
+      });
+    }
+
     let ticks = msg.seenBy?.length > 1 ? "✔✔" : "✔";
 
     let html = `<div class="name">${msg.user}</div>`;
 
     if (msg.reply) {
-      html += `<div style="font-size:11px;opacity:0.7;">↩ ${msg.reply.text}</div>`;
+      html += `<div style="font-size:11px;opacity:0.7;">↩ ${msg.reply}</div>`;
     }
 
     if (msg.type === "text") {
       html += msg.text;
+    }
+
+    if (msg.type === "image") {
+      html += `<img src="${msg.data}">`;
+    }
+
+    if (msg.type === "pdf") {
+      html += `📄 <a href="${msg.data}" target="_blank">${msg.fileName}</a>`;
     }
 
     if (msg.type === "voice") {
@@ -252,7 +307,7 @@ db.collection("messages")
       <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
       <div class="ticks">${ticks}</div>
       <button onclick="deleteMsg('${id}')">🗑</button>
-      <button onclick="setReply('${msg.text}','${id}')">↩</button>
+      <button onclick="setReply('${msg.text || "media"}')">↩</button>
     `;
 
     div.innerHTML = html;
