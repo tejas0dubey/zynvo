@@ -2,317 +2,136 @@
 <html>
 <head>
   <title>Zynvo</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #fdf6ec;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      transition: 0.3s;
+    }
 
-  background: linear-gradient(135deg, #1e1e2f, #2c2c54, #1e1e2f);
-  background-size: 400% 400%;
-  animation: gradientMove 10s ease infinite;
-}
+    .dark {
+      background: #121212;
+      color: white;
+    }
 
-@keyframes gradientMove {
-  0% {background-position: 0%}
-  50% {background-position: 100%}
-  100% {background-position: 0%}
-}
+    header {
+      background: #1c1c1c;
+      color: #fff;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-header {
-  backdrop-filter: blur(15px);
-  background: rgba(255,255,255,0.05);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  color: white;
-  padding: 15px;
-  font-size: 18px;
-  display: flex;
-  justify-content: space-between;
-}
+    #online {
+      font-size: 12px;
+      color: #9cff9c;
+    }
 
-#online {
-  color: #00ffcc;
-  font-size: 12px;
-}
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
 
-#menu {
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(15px);
-  border-radius: 12px;
-  display: none;
-  overflow: hidden;
-}
+    .msg {
+      max-width: 80%;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 12px;
+      position: relative;
+      word-wrap: break-word;
+    }
 
-#menu div {
-  padding: 12px;
-  cursor: pointer;
-  color: white;
-}
+    .me {
+      background: #dcf8c6;
+      align-self: flex-end;
+    }
 
-#menu div:hover {
-  background: rgba(255,255,255,0.1);
-}
+    .other {
+      background: #fff;
+      border: 1px solid #ddd;
+      align-self: flex-start;
+    }
 
-#chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-}
+    .dark .other {
+      background: #2a2a2a;
+      border-color: #444;
+    }
 
-.msg {
-  max-width: 75%;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 18px;
-  position: relative;
-  color: white;
+    .name {
+      font-size: 11px;
+      opacity: 0.6;
+    }
 
-  backdrop-filter: blur(20px);
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.1);
+    .time {
+      font-size: 9px;
+      opacity: 0.5;
+    }
 
-  animation: slideIn 0.3s ease;
-}
+    .tick {
+      font-size: 11px;
+      position: absolute;
+      bottom: 4px;
+      right: 6px;
+    }
 
-.me {
-  align-self: flex-end;
-  background: linear-gradient(135deg, #00ffcc55, #00ffaa33);
-}
+    img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 5px;
+    }
 
-.other {
-  align-self: flex-start;
-}
+    #inputBox {
+      display: flex;
+      padding: 8px;
+      background: #1c1c1c;
+      gap: 5px;
+    }
 
-.msg:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 0 20px rgba(0,255,200,0.2);
-}
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 20px;
+      border: none;
+    }
 
-.name {
-  font-size: 11px;
-  opacity: 0.6;
-}
+    button {
+      padding: 10px;
+      border-radius: 50%;
+      border: none;
+      background: #25d366;
+      color: white;
+      cursor: pointer;
+    }
 
-.time {
-  font-size: 10px;
-  opacity: 0.5;
-  text-align: right;
-}
+    #file { display: none; }
 
-.tick {
-  position: absolute;
-  bottom: 5px;
-  right: 8px;
-  font-size: 11px;
-}
+    #preview {
+      display: none;
+      padding: 10px;
+    }
 
-img {
-  max-width: 100%;
-  border-radius: 12px;
-  margin-top: 5px;
-}
+    #progressBar {
+      height: 4px;
+      width: 0%;
+      background: #25d366;
+    }
 
-a {
-  color: #00ffcc;
-  text-decoration: none;
-}
+    .reactions span {
+      margin-right: 6px;
+      cursor: pointer;
+    }
 
-#inputBox {
-  display: flex;
-  padding: 12px;
-  gap: 8px;
-
-<style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  background: linear-gradient(135deg, #1f1f2e, #2b2b45);
-}
-
-header {
-  backdrop-filter: blur(12px);
-  background: rgba(255,255,255,0.05);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  color: white;
-  padding: 14px;
-  font-size: 17px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#online {
-  color: #00e6b8;
-  font-size: 12px;
-}
-
-#menu {
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(12px);
-  border-radius: 10px;
-  display: none;
-  overflow: hidden;
-}
-
-#menu div {
-  padding: 10px 14px;
-  cursor: pointer;
-  color: white;
-  font-size: 14px;
-}
-
-#menu div:hover {
-  background: rgba(255,255,255,0.1);
-}
-
-#chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-}
-
-.msg {
-  max-width: 75%;
-  padding: 10px 12px;
-  margin: 6px 0;
-  border-radius: 14px;
-  position: relative;
-  color: white;
-
-  backdrop-filter: blur(10px);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-
-  animation: fadeIn 0.2s ease;
-}
-
-.me {
-  align-self: flex-end;
-  background: rgba(0, 255, 180, 0.15);
-}
-
-.other {
-  align-self: flex-start;
-}
-
-.name {
-  font-size: 10px;
-  opacity: 0.6;
-  margin-bottom: 2px;
-}
-
-.time {
-  font-size: 9px;
-  opacity: 0.5;
-  text-align: right;
-}
-
-.tick {
-  position: absolute;
-  bottom: 4px;
-  right: 6px;
-  font-size: 10px;
-}
-
-img {
-  max-width: 100%;
-  border-radius: 10px;
-  margin-top: 5px;
-}
-
-a {
-  color: #00e6b8;
-  text-decoration: none;
-  font-size: 13px;
-}
-
-#inputBox {
-  display: flex;
-  padding: 10px;
-  gap: 8px;
-
-  backdrop-filter: blur(10px);
-  background: rgba(0,0,0,0.4);
-}
-
-input {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: 20px;
-  border: none;
-  outline: none;
-  background: rgba(255,255,255,0.08);
-  color: white;
-  font-size: 14px;
-}
-
-/* 🔥 Modern Buttons */
-button {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: none;
-
-  background: rgba(0,255,180,0.2);
-  color: #00ffcc;
-  font-size: 18px;
-
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-button:hover {
-  background: rgba(0,255,180,0.35);
-  transform: scale(1.08);
-}
-
-/* ➕ button special */
-button:first-child {
-  font-size: 20px;
-}
-
-/* Send button */
-button:last-child {
-  background: #00ffcc;
-  color: black;
-}
-
-button:last-child:hover {
-  background: #00e6b8;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
+  </style>
 </head>
 
 <body>
@@ -320,13 +139,14 @@ button:last-child:hover {
 <header>
   <div>Zynvo</div>
   <div id="online">🟢 0 online</div>
-  <div onclick="toggleMenu()" style="cursor:pointer;">⋮</div>
+  <div>
+    <button onclick="login()">🔐</button>
+    <button onclick="toggleTheme()">🌓</button>
+  </div>
 </header>
 
-<div id="menu">
-  <div onclick="clearChat()">🗑️ Clear Chat</div>
-  <div onclick="changeName()">👤 Change Name</div>
-</div>
+<div id="preview"></div>
+<div id="progressBar"></div>
 
 <div id="chat"></div>
 
@@ -338,56 +158,79 @@ button:last-child:hover {
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, deleteDoc } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  doc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
+  apiKey: "YOUR_KEY",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat",
-  storageBucket: "anantdhamchat.firebasestorage.app",
-  messagingSenderId: "543392456660",
-  appId: "1:543392456660:web:c95fcddcd6ee603ea04041"
+  storageBucket: "anantdhamchat.appspot.com"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+const storage = getStorage(app);
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
+const preview = document.getElementById("preview");
+const progressBar = document.getElementById("progressBar");
 const onlineDiv = document.getElementById("online");
 
-let username = localStorage.getItem("username");
-if (!username) {
-  username = prompt("Enter your name:");
+let username = localStorage.getItem("username") || "Guest";
+
+
+// 🔐 LOGIN
+window.login = async () => {
+  const result = await signInWithPopup(auth, provider);
+  username = result.user.displayName || result.user.email;
   localStorage.setItem("username", username);
-}
-
-// MENU
-window.toggleMenu = () => {
-  const m = document.getElementById("menu");
-  m.style.display = m.style.display === "block" ? "none" : "block";
 };
 
-window.changeName = () => {
-  localStorage.removeItem("username");
-  location.reload();
+// AUTO LOGIN
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    username = user.displayName || user.email;
+  }
+});
+
+// 🌓 THEME
+window.toggleTheme = () => {
+  document.body.classList.toggle("dark");
 };
 
-// CLEAR CHAT
-window.clearChat = async () => {
-  const confirmClear = confirm("Clear chat for everyone?");
-  if (!confirmClear) return;
-
-  const snapshot = await getDocs(collection(db, "messages"));
-  snapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "messages", docSnap.id));
-  });
-};
-
-// ONLINE SYSTEM
+// 🟢 ONLINE SYSTEM (UNCHANGED)
 setInterval(()=>{
   setDoc(doc(db,"users",username),{
     name: username,
@@ -407,41 +250,59 @@ onSnapshot(collection(db,"users"), snap=>{
   onlineDiv.innerText = "🟢 " + count + " online";
 });
 
-// FILE
+// 📎 FILE PICK
 window.pickImage = () => fileInput.click();
 
-fileInput.onchange = () => {
+// 📎 FILE UPLOAD
+fileInput.onchange = async () => {
   const file = fileInput.files[0];
-  const reader = new FileReader();
 
-  reader.onload = async () => {
-    if (file.type === "application/pdf") {
-      await addDoc(collection(db, "messages"), {
-        pdf: reader.result,
-        fileName: file.name,
-        user: username,
-        time: Date.now(),
-        seen: false
-      });
-    } else {
-      await addDoc(collection(db, "messages"), {
-        image: reader.result,
-        user: username,
-        time: Date.now(),
-        seen: false
-      });
-    }
-  };
+  preview.style.display = "block";
 
-  reader.readAsDataURL(file);
+  if (file.type === "application/pdf") {
+    preview.innerHTML = "📄 " + file.name;
+  } else {
+    preview.innerHTML = `<img src="${URL.createObjectURL(file)}">`;
+  }
+
+  let progress = 0;
+  const interval = setInterval(()=>{
+    progress += 10;
+    progressBar.style.width = progress + "%";
+    if(progress >= 100) clearInterval(interval);
+  },50);
+
+  const storageRef = ref(storage, "files/" + Date.now() + "_" + file.name);
+  await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(storageRef);
+
+  if (file.type === "application/pdf") {
+    await addDoc(collection(db,"messages"),{
+      pdf: url,
+      fileName: file.name,
+      user: username,
+      time: Date.now(),
+      seen: false
+    });
+  } else {
+    await addDoc(collection(db,"messages"),{
+      image: url,
+      user: username,
+      time: Date.now(),
+      seen: false
+    });
+  }
+
+  preview.style.display = "none";
+  progressBar.style.width = "0%";
 };
 
-// TEXT
+// 💬 TEXT
 window.sendMsg = async () => {
   const text = input.value.trim();
   if (!text) return;
 
-  await addDoc(collection(db, "messages"), {
+  await addDoc(collection(db,"messages"),{
     text,
     user: username,
     time: Date.now(),
@@ -451,7 +312,7 @@ window.sendMsg = async () => {
   input.value = "";
 };
 
-// LOAD
+// 🔄 LOAD MESSAGES
 const q = query(collection(db,"messages"), orderBy("time"), limit(50));
 
 onSnapshot(q, snapshot => {
@@ -474,10 +335,18 @@ onSnapshot(q, snapshot => {
     if (msg.image) html += `<img src="${msg.image}">`;
 
     if (msg.pdf) {
-      html += `<div>📄 <a href="${msg.pdf}" target="_blank">${msg.fileName}</a></div>`;
+      html += `📄 <a href="${msg.pdf}" target="_blank">${msg.fileName}</a>`;
     }
 
     html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
+
+    html += `
+      <div class="reactions">
+        <span onclick="react(this)">👍</span>
+        <span onclick="react(this)">❤️</span>
+        <span onclick="react(this)">😂</span>
+      </div>
+    `;
 
     if(msg.user === username){
       html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
@@ -490,11 +359,17 @@ onSnapshot(q, snapshot => {
   chat.scrollTop = chat.scrollHeight;
 });
 
+// ❤️ REACTION
+window.react = (el) => {
+  el.parentElement.innerHTML = el.innerText;
+};
+
 // ENTER
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
+
 </script>
 
 </body>
-</html>
+  </html>
