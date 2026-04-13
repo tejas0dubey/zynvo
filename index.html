@@ -41,6 +41,7 @@
       background: #202c33;
       position: relative;
       word-wrap: break-word;
+      cursor: pointer;
     }
 
     .me {
@@ -75,6 +76,7 @@
       font-size: 9px;
       opacity: 0.5;
       text-align: right;
+      margin-top: 4px;
     }
 
     #inputBox {
@@ -113,23 +115,54 @@
     a {
       color: #53bdeb;
     }
+
+    .replyBox {
+      font-size: 11px;
+      opacity: 0.7;
+      border-left: 2px solid #00a884;
+      padding-left: 6px;
+      margin-bottom: 5px;
+    }
+
+    .deleteBtn {
+      font-size: 11px;
+      opacity: 0.6;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .smallBtn {
+      font-size: 12px;
+      background: #2a3942;
+      padding: 5px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
   </style>
 </head>
 
 <body>
 
-<header>Personal Chat</header>
+<header>
+  <div class="topBar">
+    <div>Personal Chat</div>
+    <div class="smallBtn" onclick="changePfp()">👤 PFP</div>
+  </div>
+</header>
 
 <div id="chat"></div>
 
 <div id="inputBox">
   <input id="msgInput" placeholder="Message...">
-
-  <!-- NEW FILE INPUT -->
-  <input type="file" id="fileInput" accept="image/*,application/pdf" hidden>
-
   <button onclick="pickFile()">➕</button>
   <button onclick="sendMsg()">➤</button>
+  <input type="file" id="fileInput" accept="image/*,application/pdf" hidden>
 </div>
 
 <script>
@@ -158,29 +191,45 @@ if (!username) {
   });
 }
 
-/* PROFILE */
+/* PROFILE PICTURE */
 let pfp = localStorage.getItem("pfp");
-if (!pfp) {
-  const picker = document.createElement("input");
-  picker.type = "file";
-  picker.accept = "image/*";
 
-  picker.onchange = () => {
-    const file = picker.files[0];
+if (!pfp) {
+  setTimeout(() => {
+    changePfp();
+  }, 500);
+}
+
+/* CHANGE PFP */
+function changePfp() {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "image/*";
+
+  inp.onchange = () => {
+    const file = inp.files[0];
     const reader = new FileReader();
 
     reader.onload = () => {
       pfp = reader.result;
       localStorage.setItem("pfp", pfp);
+      alert("Profile picture updated!");
     };
 
     reader.readAsDataURL(file);
   };
 
-  picker.click();
+  inp.click();
 }
 
-/* TEXT MESSAGE */
+/* REPLY */
+let replyTo = null;
+
+function setReply(text) {
+  replyTo = text;
+}
+
+/* SEND MESSAGE */
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -191,32 +240,32 @@ function sendMsg() {
     user: username,
     pfp: pfp || "",
     time: Date.now(),
-    reactions: {}
+    reply: replyTo
   });
 
   input.value = "";
+  replyTo = null;
 }
 
-/* FILE PICK */
+/* DELETE MESSAGE */
+window.deleteMsg = (id, user) => {
+  if (user !== username) return;
+  db.collection("messages").doc(id).delete();
+};
+
+/* FILE */
 function pickFile() {
   fileInput.click();
 }
 
-/* FILE UPLOAD (IMAGE + PDF) */
 fileInput.onchange = () => {
   const file = fileInput.files[0];
-  if (!file) return;
-
   const reader = new FileReader();
 
   reader.onload = () => {
     let type = "file";
-
-    if (file.type.startsWith("image")) {
-      type = "image";
-    } else if (file.type === "application/pdf") {
-      type = "pdf";
-    }
+    if (file.type.startsWith("image")) type = "image";
+    if (file.type === "application/pdf") type = "pdf";
 
     db.collection("messages").add({
       type,
@@ -224,8 +273,7 @@ fileInput.onchange = () => {
       fileName: file.name,
       user: username,
       pfp: pfp || "",
-      time: Date.now(),
-      reactions: {}
+      time: Date.now()
     });
   };
 
@@ -241,16 +289,18 @@ db.collection("messages")
 
   snap.forEach(doc => {
     const msg = doc.data();
+    const id = doc.id;
 
     const div = document.createElement("div");
-    div.className = "msg " + (msg.user === username ? "me" : "");
 
     if (msg.type === "system") {
-      div.className = "msg system";
+      div.className = "system";
       div.innerText = msg.text;
       chat.appendChild(div);
       return;
     }
+
+    div.className = "msg " + (msg.user === username ? "me" : "");
 
     let html = `
       <div class="nameRow">
@@ -258,6 +308,10 @@ db.collection("messages")
         <span>${msg.user}</span>
       </div>
     `;
+
+    if (msg.reply) {
+      html += `<div class="replyBox">↩ ${msg.reply}</div>`;
+    }
 
     if (msg.type === "text") {
       html += msg.text;
@@ -269,11 +323,19 @@ db.collection("messages")
 
     if (msg.type === "pdf") {
       html += `
-        📄 <a href="${msg.data}" target="_blank">
-          ${msg.fileName}
-        </a>
+        📄 <a href="${msg.data}" target="_blank">${msg.fileName}</a>
       `;
     }
+
+    html += `
+      <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
+
+      <div class="deleteBtn" onclick="deleteMsg('${id}','${msg.user}')">
+        🗑 Delete
+      </div>
+    `;
+
+    div.onclick = () => setReply(msg.text || msg.fileName || "file");
 
     div.innerHTML = html;
     chat.appendChild(div);
@@ -284,4 +346,4 @@ db.collection("messages")
 </script>
 
 </body>
-  </html>
+</html>
