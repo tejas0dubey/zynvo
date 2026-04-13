@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Zynvo chat</title>
+  <title>Zynvo WhatsApp Clone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -77,13 +77,6 @@
       text-align: right;
     }
 
-    .ticks {
-      position: absolute;
-      bottom: 4px;
-      right: 8px;
-      font-size: 11px;
-    }
-
     #inputBox {
       display: flex;
       padding: 10px;
@@ -111,7 +104,7 @@
       cursor: pointer;
     }
 
-    img, video {
+    img {
       max-width: 100%;
       border-radius: 8px;
       margin-top: 5px;
@@ -120,31 +113,22 @@
     a {
       color: #53bdeb;
     }
-
-    .reactions {
-      margin-top: 5px;
-      font-size: 14px;
-      display: flex;
-      gap: 6px;
-      cursor: pointer;
-    }
-
-    .reaction-bubble {
-      background: #111b21;
-      padding: 2px 6px;
-      border-radius: 10px;
-    }
   </style>
 </head>
 
 <body>
 
-<header>Zynvo Chat</header>
+<header>Zynvo WhatsApp Clone</header>
 
 <div id="chat"></div>
 
 <div id="inputBox">
   <input id="msgInput" placeholder="Message...">
+
+  <!-- NEW FILE INPUT -->
+  <input type="file" id="fileInput" accept="image/*,application/pdf" hidden>
+
+  <button onclick="pickFile()">➕</button>
   <button onclick="sendMsg()">➤</button>
 </div>
 
@@ -159,8 +143,9 @@ const db = firebase.firestore();
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
+const fileInput = document.getElementById("fileInput");
 
-/* ---------------- USER ---------------- */
+/* USER */
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter name:");
@@ -173,9 +158,8 @@ if (!username) {
   });
 }
 
-/* ---------------- PROFILE PICTURE ---------------- */
+/* PROFILE */
 let pfp = localStorage.getItem("pfp");
-
 if (!pfp) {
   const picker = document.createElement("input");
   picker.type = "file";
@@ -196,7 +180,7 @@ if (!pfp) {
   picker.click();
 }
 
-/* ---------------- SEND MESSAGE ---------------- */
+/* TEXT MESSAGE */
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -207,37 +191,48 @@ function sendMsg() {
     user: username,
     pfp: pfp || "",
     time: Date.now(),
-    reactions: {},
-    seenBy: [username]
+    reactions: {}
   });
 
   input.value = "";
 }
 
-/* ---------------- DELETE ---------------- */
-window.deleteMsg = (id, msgUser) => {
-  if (msgUser !== username) {
-    alert("You can only delete your own messages!");
-    return;
-  }
-  db.collection("messages").doc(id).delete();
+/* FILE PICK */
+function pickFile() {
+  fileInput.click();
+}
+
+/* FILE UPLOAD (IMAGE + PDF) */
+fileInput.onchange = () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    let type = "file";
+
+    if (file.type.startsWith("image")) {
+      type = "image";
+    } else if (file.type === "application/pdf") {
+      type = "pdf";
+    }
+
+    db.collection("messages").add({
+      type,
+      data: reader.result,
+      fileName: file.name,
+      user: username,
+      pfp: pfp || "",
+      time: Date.now(),
+      reactions: {}
+    });
+  };
+
+  reader.readAsDataURL(file);
 };
 
-/* ---------------- REACTIONS ---------------- */
-window.react = (id, emoji) => {
-  const ref = db.collection("messages").doc(id);
-
-  ref.get().then(doc => {
-    let data = doc.data();
-    let reactions = data.reactions || {};
-
-    reactions[emoji] = (reactions[emoji] || 0) + 1;
-
-    ref.update({ reactions });
-  });
-};
-
-/* ---------------- LOAD CHAT ---------------- */
+/* LOAD CHAT */
 db.collection("messages")
 .orderBy("time")
 .onSnapshot(snap => {
@@ -246,9 +241,9 @@ db.collection("messages")
 
   snap.forEach(doc => {
     const msg = doc.data();
-    const id = doc.id;
 
     const div = document.createElement("div");
+    div.className = "msg " + (msg.user === username ? "me" : "");
 
     if (msg.type === "system") {
       div.className = "msg system";
@@ -257,8 +252,6 @@ db.collection("messages")
       return;
     }
 
-    div.className = "msg " + (msg.user === username ? "me" : "");
-
     let html = `
       <div class="nameRow">
         <img class="pfp" src="${msg.pfp || 'https://i.imgur.com/6VBx3io.png'}">
@@ -266,29 +259,21 @@ db.collection("messages")
       </div>
     `;
 
-    html += msg.text;
-
-    /* REACTIONS DISPLAY */
-    if (msg.reactions) {
-      html += `<div class="reactions">`;
-      for (let r in msg.reactions) {
-        html += `<span class="reaction-bubble">${r} ${msg.reactions[r]}</span>`;
-      }
-      html += `</div>`;
+    if (msg.type === "text") {
+      html += msg.text;
     }
 
-    html += `
-      <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
+    if (msg.type === "image") {
+      html += `<img src="${msg.data}">`;
+    }
 
-      <div class="reactions">
-        <span onclick="react('${id}','🔥')">🔥</span>
-        <span onclick="react('${id}','❤️')">❤️</span>
-        <span onclick="react('${id}','😂')">😂</span>
-        <span onclick="react('${id}','👍')">👍</span>
-      </div>
-
-      <button onclick="deleteMsg('${id}','${msg.user}')">🗑</button>
-    `;
+    if (msg.type === "pdf") {
+      html += `
+        📄 <a href="${msg.data}" target="_blank">
+          ${msg.fileName}
+        </a>
+      `;
+    }
 
     div.innerHTML = html;
     chat.appendChild(div);
@@ -299,4 +284,4 @@ db.collection("messages")
 </script>
 
 </body>
-</html>
+  </html>
