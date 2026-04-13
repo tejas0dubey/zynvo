@@ -1,112 +1,182 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5319494706493676"
-     crossorigin="anonymous"></script>
   <title>Zynvo</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<STYLE>
- /* 🌈 GLOBAL SOFT GLOW */
+
+  <style>
 body {
-  background: radial-gradient(circle at top, #fff7e6, #fdf6ec);
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #1e1e2f, #2c2c54, #1e1e2f);
+  background-size: 400% 400%;
+  animation: gradientMove 10s ease infinite;
 }
 
-/* ✨ HEADER GLOW */
+@keyframes gradientMove {
+  0% {background-position: 0%}
+  50% {background-position: 100%}
+  100% {background-position: 0%}
+}
+
 header {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  color: white;
+  padding: 15px;
+  font-size: 18px;
+  display: flex;
+  justify-content: space-between;
 }
 
-/* 💬 MESSAGE ANIMATION */
+#online {
+  color: #00ffcc;
+  font-size: 12px;
+}
+
+#menu {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(15px);
+  border-radius: 12px;
+  display: none;
+  overflow: hidden;
+}
+
+#menu div {
+  padding: 12px;
+  cursor: pointer;
+  color: white;
+}
+
+#menu div:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
 .msg {
-  animation: msgIn 0.25s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  transition: 0.2s;
+  max-width: 75%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 18px;
+  position: relative;
+  color: white;
+
+  backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+
+  animation: slideIn 0.3s ease;
+}
+
+.me {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #00ffcc55, #00ffaa33);
+}
+
+.other {
+  align-self: flex-start;
 }
 
 .msg:hover {
-  transform: scale(1.02);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 20px rgba(0,255,200,0.2);
 }
 
-/* 🟢 YOUR MESSAGE GLOW */
-.me {
-  box-shadow: 0 0 10px rgba(37, 211, 102, 0.4);
+.name {
+  font-size: 11px;
+  opacity: 0.6;
 }
 
-/* ⚪ OTHER MESSAGE SOFT LIGHT */
-.other {
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+.time {
+  font-size: 10px;
+  opacity: 0.5;
+  text-align: right;
 }
 
-/* 🚀 INPUT BOX LIGHT */
+.tick {
+  position: absolute;
+  bottom: 5px;
+  right: 8px;
+  font-size: 11px;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-top: 5px;
+}
+
+a {
+  color: #00ffcc;
+  text-decoration: none;
+}
+
 #inputBox {
-  box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+  display: flex;
+  padding: 12px;
+  gap: 8px;
+
+  backdrop-filter: blur(15px);
+  background: rgba(0,0,0,0.4);
 }
 
-/* ✨ INPUT FIELD EFFECT */
 input {
-  transition: 0.2s;
+  flex: 1;
+  padding: 12px;
+  border-radius: 25px;
+  border: none;
+  outline: none;
+  background: rgba(255,255,255,0.1);
+  color: white;
 }
 
-input:focus {
-  box-shadow: 0 0 10px rgba(37, 211, 102, 0.5);
-}
-
-/* 🔘 BUTTON GLOW + PRESS */
 button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+
+  background: linear-gradient(135deg, #00ffcc, #00ffaa);
+  color: black;
+  font-size: 18px;
+
+  cursor: pointer;
   transition: 0.2s;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
 }
 
 button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 12px rgba(37, 211, 102, 0.7);
+  transform: scale(1.15);
+  box-shadow: 0 0 15px #00ffcc;
 }
 
-button:active {
-  transform: scale(0.95);
-}
-
-/* 🖼️ IMAGE POP EFFECT */
-img {
-  transition: 0.3s;
-}
-
-img:hover {
-  transform: scale(1.05);
-}
-
-/* 🌊 MESSAGE ENTRY */
-@keyframes msgIn {
+@keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
+    transform: translateY(20px) scale(0.9);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
-
-/* 💡 FLOATING LIGHT EFFECT */
-body::before {
-  content: "";
-  position: fixed;
-  width: 300px;
-  height: 300px;
-  background: rgba(255, 255, 200, 0.2);
-  filter: blur(80px);
-  top: -50px;
-  left: -50px;
-  animation: floatLight 6s infinite alternate;
-}
-
-@keyframes floatLight {
-  from { transform: translate(0,0); }
-  to { transform: translate(50px, 50px); }
-}
-</STYLE>
+  </style>
 </head>
 
 <body>
@@ -128,7 +198,6 @@ body::before {
   <button onclick="pickImage()">➕</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-  <!-- ✅ UPDATED -->
   <input type="file" id="file" accept="image/*,application/pdf">
 </div>
 
@@ -154,7 +223,6 @@ const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
 const onlineDiv = document.getElementById("online");
 
-// USER
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter your name:");
@@ -178,7 +246,6 @@ window.clearChat = async () => {
   if (!confirmClear) return;
 
   const snapshot = await getDocs(collection(db, "messages"));
-
   snapshot.forEach(async (docSnap) => {
     await deleteDoc(doc(db, "messages", docSnap.id));
   });
@@ -190,37 +257,21 @@ setInterval(()=>{
     name: username,
     lastSeen: Date.now()
   });
-},3000);
+},2000);
 
 onSnapshot(collection(db,"users"), snap=>{
   let count = 0;
-  snap.forEach(d=>{
-    const u = d.data();
-    if(Date.now() - u.lastSeen < 5000) count++;
-  });
-  onlineDiv.innerText = "🟢 " + count + " online";
-});
-
-setInterval(async () => {
-  await setDoc(doc(db, "users", username), {
-    name: username,
-    lastSeen: Date.now()
-  });
-}, 2000);
-
-onSnapshot(collection(db, "users"), snap => {
-  let count = 0;
   const now = Date.now();
 
-  snap.forEach(d => {
+  snap.forEach(d=>{
     const u = d.data();
-    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
+    if(u.lastSeen && (now - u.lastSeen < 7000)) count++;
   });
 
   onlineDiv.innerText = "🟢 " + count + " online";
 });
 
-// FILE (IMAGE + PDF)
+// FILE
 window.pickImage = () => fileInput.click();
 
 fileInput.onchange = () => {
@@ -228,7 +279,6 @@ fileInput.onchange = () => {
   const reader = new FileReader();
 
   reader.onload = async () => {
-
     if (file.type === "application/pdf") {
       await addDoc(collection(db, "messages"), {
         pdf: reader.result,
@@ -245,7 +295,6 @@ fileInput.onchange = () => {
         seen: false
       });
     }
-
   };
 
   reader.readAsDataURL(file);
@@ -288,15 +337,8 @@ onSnapshot(q, snapshot => {
     if (msg.text) html += `<div>${msg.text}</div>`;
     if (msg.image) html += `<img src="${msg.image}">`;
 
-    // ✅ PDF DISPLAY
     if (msg.pdf) {
-      html += `
-        <div style="margin-top:5px;">
-          📄 <a href="${msg.pdf}" target="_blank">
-            ${msg.fileName || "Open PDF"}
-          </a>
-        </div>
-      `;
+      html += `<div>📄 <a href="${msg.pdf}" target="_blank">${msg.fileName}</a></div>`;
     }
 
     html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
@@ -316,7 +358,6 @@ onSnapshot(q, snapshot => {
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
-  
 </script>
 
 </body>
