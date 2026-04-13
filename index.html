@@ -2,8 +2,11 @@
 <html>
 <head>
   <title>Zynvo</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase (stable) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <style>
     body {
@@ -13,12 +16,6 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      transition: 0.3s;
-    }
-
-    .dark {
-      background: #121212;
-      color: white;
     }
 
     header {
@@ -27,13 +24,6 @@
       padding: 12px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      font-size: 16px;
-    }
-
-    #online {
-      font-size: 12px;
-      color: #9cff9c;
     }
 
     #chat {
@@ -49,7 +39,6 @@
       padding: 10px;
       margin: 5px 0;
       border-radius: 12px;
-      font-size: 14px;
       position: relative;
       word-wrap: break-word;
     }
@@ -65,32 +54,22 @@
       align-self: flex-start;
     }
 
-    .dark .other {
-      background: #2a2a2a;
-      border-color: #444;
-    }
-
-    .name {
-      font-size: 11px;
-      opacity: 0.6;
-    }
-
-    .time {
-      font-size: 9px;
-      opacity: 0.5;
-    }
-
-    .tick {
-      font-size: 11px;
+    .deleteBtn {
       position: absolute;
-      bottom: 4px;
-      right: 6px;
-      opacity: 0.6;
+      top: 5px;
+      right: 5px;
+      cursor: pointer;
+      font-size: 10px;
     }
 
     img {
       max-width: 100%;
       border-radius: 10px;
+      margin-top: 5px;
+    }
+
+    a {
+      display: block;
       margin-top: 5px;
     }
 
@@ -106,7 +85,6 @@
       padding: 10px;
       border-radius: 20px;
       border: none;
-      font-size: 14px;
     }
 
     button {
@@ -118,49 +96,6 @@
       font-size: 16px;
       cursor: pointer;
     }
-
-    #file {
-      display: none;
-    }
-
-    #menu {
-      position: absolute;
-      top: 50px;
-      right: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-      display: none;
-      z-index: 1000;
-    }
-
-    #menu div {
-      padding: 5px;
-      cursor: pointer;
-    }
-
-    #preview img {
-      max-width: 120px;
-      border-radius: 10px;
-    }
-
-    .reactions {
-      margin-top: 5px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    #progressBar {
-      height: 4px;
-      width: 0%;
-      background: #25d366;
-    }
-
-    @media (max-width: 600px) {
-      body {
-        height: 100dvh;
-      }
-    }
   </style>
 </head>
 
@@ -168,54 +103,31 @@
 
 <header>
   <div>Zynvo</div>
-  <div id="online">🟢 0 online</div>
-  <div>
-    <span onclick="toggleTheme()" style="cursor:pointer;margin-right:10px;">🌓</span>
-    <span onclick="toggleMenu()" style="cursor:pointer;">⋮</span>
-  </div>
+  <div id="online">🟢 Live</div>
 </header>
-
-<div id="menu">
-  <div onclick="clearChat()">🗑️ Clear Chat</div>
-  <div onclick="changeName()">👤 Change Name</div>
-</div>
-
-<div id="preview" style="display:none; padding:10px;"></div>
-<div id="progressBar"></div>
 
 <div id="chat"></div>
 
 <div id="inputBox">
-  <button onclick="pickImage()">➕</button>
+  <button onclick="pickFile()">➕</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-  <input type="file" id="file" accept="image/*,application/pdf">
+  <input type="file" id="file" hidden accept="image/*,application/pdf">
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, deleteDoc } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
-  projectId: "anantdhamchat",
-  storageBucket: "anantdhamchat.firebasestorage.app",
-  messagingSenderId: "543392456660",
-  appId: "1:543392456660:web:c95fcddcd6ee603ea04041"
+  projectId: "anantdhamchat"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
-const onlineDiv = document.getElementById("online");
-
-const preview = document.getElementById("preview");
-const progressBar = document.getElementById("progressBar");
 
 let username = localStorage.getItem("username");
 if (!username) {
@@ -223,155 +135,110 @@ if (!username) {
   localStorage.setItem("username", username);
 }
 
-window.toggleTheme = () => document.body.classList.toggle("dark");
+// SEND TEXT
+function sendMsg() {
+  const text = input.value.trim();
+  if (!text) return;
 
-window.toggleMenu = () => {
-  const m = document.getElementById("menu");
-  m.style.display = m.style.display === "block" ? "none" : "block";
-};
-
-window.changeName = () => {
-  localStorage.removeItem("username");
-  location.reload();
-};
-
-window.clearChat = async () => {
-  const confirmClear = confirm("Clear chat for everyone?");
-  if (!confirmClear) return;
-  const snapshot = await getDocs(collection(db, "messages"));
-  snapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "messages", docSnap.id));
+  db.collection("messages").add({
+    text,
+    user: username,
+    time: Date.now(),
+    seen: false
   });
-};
 
-// ONLINE
-setInterval(async () => {
-  await setDoc(doc(db, "users", username), {
-    name: username,
-    lastSeen: Date.now()
-  });
-}, 2000);
+  input.value = "";
+}
 
-onSnapshot(collection(db, "users"), snap => {
-  let count = 0;
-  const now = Date.now();
-  snap.forEach(d => {
-    const u = d.data();
-    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
-  });
-  onlineDiv.innerText = "🟢 " + count + " online";
-});
+// FILE PICK
+function pickFile() {
+  fileInput.click();
+}
 
-// FILE
-window.pickImage = () => fileInput.click();
-
+// FILE SEND
 fileInput.onchange = () => {
   const file = fileInput.files[0];
+  if (!file) return;
+
   const reader = new FileReader();
 
-  reader.onload = async () => {
-
-    preview.style.display = "block";
-    preview.innerHTML = file.type === "application/pdf"
-      ? `📄 ${file.name}`
-      : `<img src="${reader.result}">`;
-
-    progressBar.style.width = "0%";
-    let p = 0;
-    const interval = setInterval(() => {
-      p += 10;
-      progressBar.style.width = p + "%";
-      if (p >= 100) clearInterval(interval);
-    }, 50);
+  reader.onload = () => {
 
     if (file.type === "application/pdf") {
-      await addDoc(collection(db, "messages"), {
+      db.collection("messages").add({
         pdf: reader.result,
         fileName: file.name,
         user: username,
-        time: Date.now() + Math.random(),
+        time: Date.now(),
         seen: false
       });
     } else {
-      await addDoc(collection(db, "messages"), {
+      db.collection("messages").add({
         image: reader.result,
         user: username,
-        time: Date.now() + Math.random(),
+        time: Date.now(),
         seen: false
       });
     }
 
-    preview.style.display = "none";
   };
 
   reader.readAsDataURL(file);
 };
 
-// TEXT
-window.sendMsg = async () => {
-  const text = input.value.trim();
-  if (!text) return;
+// DELETE MESSAGE
+function deleteMsg(id, user) {
+  if (user !== username) return;
+  db.collection("messages").doc(id).delete();
+}
 
-  await addDoc(collection(db, "messages"), {
-    text,
-    user: username,
-    time: Date.now() + Math.random(), // ✅ FIX HERE
-    seen: false
+// REALTIME LOAD (FIXED - no disappearing)
+db.collection("messages").orderBy("time").limit(50)
+.onSnapshot(snapshot => {
+
+  snapshot.docChanges().forEach(change => {
+
+    if (change.type === "added") {
+
+      const msg = change.doc.data();
+
+      const div = document.createElement("div");
+      div.className = "msg " + (msg.user === username ? "me" : "other");
+
+      let html = `<b>${msg.user}</b>`;
+
+      // delete button (only for own msg)
+      if (msg.user === username) {
+        html += `<div class="deleteBtn" onclick="deleteMsg('${change.doc.id}','${msg.user}')">🗑️</div>`;
+      }
+
+      if (msg.text) html += `<div>${msg.text}</div>`;
+      if (msg.image) html += `<img src="${msg.image}">`;
+
+      if (msg.pdf) {
+        html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
+      }
+
+      div.innerHTML = html;
+      chat.appendChild(div);
+
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // handle delete sync
+    if (change.type === "removed") {
+      location.reload();
+    }
+
   });
 
-  input.value = "";
-};
-
-// LOAD
-const q = query(collection(db,"messages"), orderBy("time"), limit(50));
-
-onSnapshot(q, snapshot => {
-  chat.innerHTML = "";
-
-  snapshot.forEach(docSnap => {
-    const msg = docSnap.data();
-    const id = docSnap.id;
-
-    if (msg.user !== username && !msg.seen) {
-      setTimeout(() => {
-        setDoc(doc(db,"messages",id), { seen:true }, { merge:true });
-      }, 0);
-    }
-
-    const div = document.createElement("div");
-    div.className = "msg " + (msg.user === username ? "me" : "other");
-
-    let html = `<div class="name">${msg.user}</div>`;
-
-    if (msg.text) html += `<div>${msg.text}</div>`;
-    if (msg.image) html += `<img src="${msg.image}">`;
-
-    if (msg.pdf) {
-      html += `<div>📄 <a href="${msg.pdf}" target="_blank">${msg.fileName}</a></div>`;
-    }
-
-    html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
-    html += `<div class="reactions" onclick="react(this)">👍 ❤️ 😂</div>`;
-
-    if(msg.user === username){
-      html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
-    }
-
-    div.innerHTML = html;
-    chat.appendChild(div);
-  });
-
-  chat.scrollTop = chat.scrollHeight;
 });
 
-window.react = (el) => {
-  el.innerHTML = "❤️";
-};
-
+// ENTER SEND
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
 </script>
 
 </body>
-    </html>
+  </html>
