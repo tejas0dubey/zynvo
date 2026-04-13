@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Zynvo</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -22,7 +21,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 16px;
     }
 
     #online {
@@ -59,15 +57,8 @@
       align-self: flex-start;
     }
 
-    .name {
-      font-size: 11px;
-      opacity: 0.6;
-    }
-
-    .time {
-      font-size: 9px;
-      opacity: 0.5;
-    }
+    .name { font-size: 11px; opacity: 0.6; }
+    .time { font-size: 9px; opacity: 0.5; }
 
     .tick {
       font-size: 11px;
@@ -95,7 +86,6 @@
       padding: 10px;
       border-radius: 20px;
       border: none;
-      font-size: 14px;
     }
 
     button {
@@ -104,13 +94,10 @@
       border: none;
       background: #25d366;
       color: white;
-      font-size: 16px;
       cursor: pointer;
     }
 
-    #file {
-      display: none;
-    }
+    #file { display: none; }
 
     #menu {
       position: absolute;
@@ -120,18 +107,11 @@
       padding: 10px;
       border-radius: 10px;
       display: none;
-      z-index: 1000;
     }
 
     #menu div {
       padding: 5px;
       cursor: pointer;
-    }
-
-    @media (max-width: 600px) {
-      body {
-        height: 100dvh;
-      }
     }
   </style>
 </head>
@@ -141,7 +121,7 @@
 <header>
   <div>Zynvo</div>
   <div id="online">🟢 0 online</div>
-  <div onclick="toggleMenu()" style="cursor:pointer;">⋮</div>
+  <div onclick="toggleMenu()">⋮</div>
 </header>
 
 <div id="menu">
@@ -155,17 +135,16 @@
   <button onclick="pickImage()">➕</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-  <!-- ✅ UPDATED -->
   <input type="file" id="file" accept="image/*,application/pdf">
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, deleteDoc } 
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDocs, deleteDoc } 
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
+  apiKey: "YOUR_API",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat",
   storageBucket: "anantdhamchat.firebasestorage.app",
@@ -201,39 +180,21 @@ window.changeName = () => {
 
 // CLEAR CHAT
 window.clearChat = async () => {
-  const confirmClear = confirm("Clear chat for everyone?");
-  if (!confirmClear) return;
+  if (!confirm("Clear chat for everyone?")) return;
 
   const snapshot = await getDocs(collection(db, "messages"));
-
-  snapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "messages", docSnap.id));
+  snapshot.forEach(async (d) => {
+    await deleteDoc(doc(db, "messages", d.id));
   });
 };
 
-// ONLINE SYSTEM
-setInterval(()=>{
-  setDoc(doc(db,"users",username),{
+// ONLINE SYSTEM (FIXED - single instance)
+setInterval(() => {
+  setDoc(doc(db, "users", username), {
     name: username,
     lastSeen: Date.now()
   });
-},3000);
-
-onSnapshot(collection(db,"users"), snap=>{
-  let count = 0;
-  snap.forEach(d=>{
-    const u = d.data();
-    if(Date.now() - u.lastSeen < 5000) count++;
-  });
-  onlineDiv.innerText = "🟢 " + count + " online";
-});
-
-setInterval(async () => {
-  await setDoc(doc(db, "users", username), {
-    name: username,
-    lastSeen: Date.now()
-  });
-}, 2000);
+}, 3000);
 
 onSnapshot(collection(db, "users"), snap => {
   let count = 0;
@@ -241,13 +202,13 @@ onSnapshot(collection(db, "users"), snap => {
 
   snap.forEach(d => {
     const u = d.data();
-    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
+    if (u.lastSeen && (now - u.lastSeen < 6000)) count++;
   });
 
   onlineDiv.innerText = "🟢 " + count + " online";
 });
 
-// FILE (IMAGE + PDF)
+// FILE
 window.pickImage = () => fileInput.click();
 
 fileInput.onchange = () => {
@@ -255,7 +216,6 @@ fileInput.onchange = () => {
   const reader = new FileReader();
 
   reader.onload = async () => {
-
     if (file.type === "application/pdf") {
       await addDoc(collection(db, "messages"), {
         pdf: reader.result,
@@ -272,7 +232,6 @@ fileInput.onchange = () => {
         seen: false
       });
     }
-
   };
 
   reader.readAsDataURL(file);
@@ -293,18 +252,18 @@ window.sendMsg = async () => {
   input.value = "";
 };
 
-// LOAD
-const q = query(collection(db,"messages"), orderBy("time"), limit(50));
+// 🔥 FIXED: removed limit()
+const q = query(collection(db, "messages"), orderBy("time"));
 
 onSnapshot(q, snapshot => {
   chat.innerHTML = "";
 
-  snapshot.forEach(async docSnap => {
+  snapshot.forEach(docSnap => {
     const msg = docSnap.data();
     const id = docSnap.id;
 
-    if(msg.user !== username && !msg.seen){
-      setDoc(doc(db,"messages",id),{ seen:true }, { merge:true });
+    if (msg.user !== username && !msg.seen) {
+      setDoc(doc(db, "messages", id), { seen: true }, { merge: true });
     }
 
     const div = document.createElement("div");
@@ -315,10 +274,9 @@ onSnapshot(q, snapshot => {
     if (msg.text) html += `<div>${msg.text}</div>`;
     if (msg.image) html += `<img src="${msg.image}">`;
 
-    // ✅ PDF DISPLAY
     if (msg.pdf) {
       html += `
-        <div style="margin-top:5px;">
+        <div>
           📄 <a href="${msg.pdf}" target="_blank">
             ${msg.fileName || "Open PDF"}
           </a>
@@ -328,7 +286,7 @@ onSnapshot(q, snapshot => {
 
     html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
 
-    if(msg.user === username){
+    if (msg.user === username) {
       html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
     }
 
@@ -343,8 +301,7 @@ onSnapshot(q, snapshot => {
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
-  
 </script>
 
 </body>
-  </html>
+</html>
