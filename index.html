@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Zynvo</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -12,6 +13,12 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      transition: 0.3s;
+    }
+
+    .dark {
+      background: #121212;
+      color: white;
     }
 
     header {
@@ -21,6 +28,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 16px;
     }
 
     #online {
@@ -57,8 +65,20 @@
       align-self: flex-start;
     }
 
-    .name { font-size: 11px; opacity: 0.6; }
-    .time { font-size: 9px; opacity: 0.5; }
+    .dark .other {
+      background: #2a2a2a;
+      border-color: #444;
+    }
+
+    .name {
+      font-size: 11px;
+      opacity: 0.6;
+    }
+
+    .time {
+      font-size: 9px;
+      opacity: 0.5;
+    }
 
     .tick {
       font-size: 11px;
@@ -86,6 +106,7 @@
       padding: 10px;
       border-radius: 20px;
       border: none;
+      font-size: 14px;
     }
 
     button {
@@ -94,10 +115,13 @@
       border: none;
       background: #25d366;
       color: white;
+      font-size: 16px;
       cursor: pointer;
     }
 
-    #file { display: none; }
+    #file {
+      display: none;
+    }
 
     #menu {
       position: absolute;
@@ -107,11 +131,35 @@
       padding: 10px;
       border-radius: 10px;
       display: none;
+      z-index: 1000;
     }
 
     #menu div {
       padding: 5px;
       cursor: pointer;
+    }
+
+    #preview img {
+      max-width: 120px;
+      border-radius: 10px;
+    }
+
+    .reactions {
+      margin-top: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #progressBar {
+      height: 4px;
+      width: 0%;
+      background: #25d366;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        height: 100dvh;
+      }
     }
   </style>
 </head>
@@ -121,13 +169,19 @@
 <header>
   <div>Zynvo</div>
   <div id="online">🟢 0 online</div>
-  <div onclick="toggleMenu()">⋮</div>
+  <div>
+    <span onclick="toggleTheme()" style="cursor:pointer;margin-right:10px;">🌓</span>
+    <span onclick="toggleMenu()" style="cursor:pointer;">⋮</span>
+  </div>
 </header>
 
 <div id="menu">
   <div onclick="clearChat()">🗑️ Clear Chat</div>
   <div onclick="changeName()">👤 Change Name</div>
 </div>
+
+<div id="preview" style="display:none; padding:10px;"></div>
+<div id="progressBar"></div>
 
 <div id="chat"></div>
 
@@ -140,11 +194,11 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, setDoc, getDocs, deleteDoc } 
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, deleteDoc } 
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API",
+  apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat",
   storageBucket: "anantdhamchat.firebasestorage.app",
@@ -160,14 +214,19 @@ const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
 const onlineDiv = document.getElementById("online");
 
-// USER
+const preview = document.getElementById("preview");
+const progressBar = document.getElementById("progressBar");
+
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter your name:");
   localStorage.setItem("username", username);
 }
 
-// MENU
+window.toggleTheme = () => {
+  document.body.classList.toggle("dark");
+};
+
 window.toggleMenu = () => {
   const m = document.getElementById("menu");
   m.style.display = m.style.display === "block" ? "none" : "block";
@@ -178,33 +237,46 @@ window.changeName = () => {
   location.reload();
 };
 
-// CLEAR CHAT
 window.clearChat = async () => {
-  if (!confirm("Clear chat for everyone?")) return;
-
+  const confirmClear = confirm("Clear chat for everyone?");
+  if (!confirmClear) return;
   const snapshot = await getDocs(collection(db, "messages"));
-  snapshot.forEach(async (d) => {
-    await deleteDoc(doc(db, "messages", d.id));
+  snapshot.forEach(async (docSnap) => {
+    await deleteDoc(doc(db, "messages", docSnap.id));
   });
 };
 
-// ONLINE SYSTEM (FIXED - single instance)
-setInterval(() => {
-  setDoc(doc(db, "users", username), {
+// ONLINE SYSTEM (UNCHANGED)
+setInterval(()=>{
+  setDoc(doc(db,"users",username),{
     name: username,
     lastSeen: Date.now()
   });
-}, 3000);
+},3000);
+
+onSnapshot(collection(db,"users"), snap=>{
+  let count = 0;
+  snap.forEach(d=>{
+    const u = d.data();
+    if(Date.now() - u.lastSeen < 5000) count++;
+  });
+  onlineDiv.innerText = "🟢 " + count + " online";
+});
+
+setInterval(async () => {
+  await setDoc(doc(db, "users", username), {
+    name: username,
+    lastSeen: Date.now()
+  });
+}, 2000);
 
 onSnapshot(collection(db, "users"), snap => {
   let count = 0;
   const now = Date.now();
-
   snap.forEach(d => {
     const u = d.data();
-    if (u.lastSeen && (now - u.lastSeen < 6000)) count++;
+    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
   });
-
   onlineDiv.innerText = "🟢 " + count + " online";
 });
 
@@ -216,6 +288,23 @@ fileInput.onchange = () => {
   const reader = new FileReader();
 
   reader.onload = async () => {
+
+    // PREVIEW
+    preview.style.display = "block";
+    preview.innerHTML = file.type === "application/pdf"
+      ? `📄 ${file.name}`
+      : `<img src="${reader.result}">`;
+
+    // PROGRESS
+    progressBar.style.width = "0%";
+    let p = 0;
+    const interval = setInterval(() => {
+      p += 10;
+      progressBar.style.width = p + "%";
+      if (p >= 100) clearInterval(interval);
+    }, 50);
+
+    // ORIGINAL LOGIC
     if (file.type === "application/pdf") {
       await addDoc(collection(db, "messages"), {
         pdf: reader.result,
@@ -232,6 +321,8 @@ fileInput.onchange = () => {
         seen: false
       });
     }
+
+    preview.style.display = "none";
   };
 
   reader.readAsDataURL(file);
@@ -252,18 +343,18 @@ window.sendMsg = async () => {
   input.value = "";
 };
 
-// 🔥 FIXED: removed limit()
-const q = query(collection(db, "messages"), orderBy("time"));
+// LOAD
+const q = query(collection(db,"messages"), orderBy("time"), limit(50));
 
 onSnapshot(q, snapshot => {
   chat.innerHTML = "";
 
-  snapshot.forEach(docSnap => {
+  snapshot.forEach(async docSnap => {
     const msg = docSnap.data();
     const id = docSnap.id;
 
-    if (msg.user !== username && !msg.seen) {
-      setDoc(doc(db, "messages", id), { seen: true }, { merge: true });
+    if(msg.user !== username && !msg.seen){
+      setDoc(doc(db,"messages",id),{ seen:true }, { merge:true });
     }
 
     const div = document.createElement("div");
@@ -275,18 +366,15 @@ onSnapshot(q, snapshot => {
     if (msg.image) html += `<img src="${msg.image}">`;
 
     if (msg.pdf) {
-      html += `
-        <div>
-          📄 <a href="${msg.pdf}" target="_blank">
-            ${msg.fileName || "Open PDF"}
-          </a>
-        </div>
-      `;
+      html += `<div>📄 <a href="${msg.pdf}" target="_blank">${msg.fileName}</a></div>`;
     }
 
     html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
 
-    if (msg.user === username) {
+    // REACTIONS (UI only)
+    html += `<div class="reactions" onclick="react(this)">👍 ❤️ 😂</div>`;
+
+    if(msg.user === username){
       html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
     }
 
@@ -297,6 +385,10 @@ onSnapshot(q, snapshot => {
   chat.scrollTop = chat.scrollHeight;
 });
 
+window.react = (el) => {
+  el.innerHTML = "❤️";
+};
+
 // ENTER
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
@@ -304,4 +396,4 @@ input.addEventListener("keypress", e => {
 </script>
 
 </body>
-</html>
+      </html>
