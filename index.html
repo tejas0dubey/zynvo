@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Zynvo Chat</title>
+  <title>Zynvo Pro Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -22,7 +22,22 @@
       background: #111b21;
       padding: 12px;
       text-align: center;
-      font-weight: 600;
+      font-weight: bold;
+    }
+
+    #statusBar {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      overflow-x: auto;
+      background: #0f1c22;
+    }
+
+    .status {
+      min-width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid #00a884;
     }
 
     #chat {
@@ -40,7 +55,6 @@
       border-radius: 12px;
       background: #202c33;
       position: relative;
-      word-wrap: break-word;
     }
 
     .me {
@@ -50,36 +64,32 @@
 
     .system {
       align-self: center;
-      background: #2a3942;
       font-size: 12px;
+      opacity: 0.7;
+      background: #2a3942;
+      padding: 6px;
+      border-radius: 10px;
     }
 
-    .name {
+    .nameRow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
-      opacity: 0.6;
+      opacity: 0.8;
+    }
+
+    .pfp {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      object-fit: cover;
     }
 
     .time {
       font-size: 9px;
       opacity: 0.5;
       text-align: right;
-    }
-
-    .ticks {
-      position: absolute;
-      bottom: 4px;
-      right: 8px;
-      font-size: 11px;
-    }
-
-    img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 5px;
-    }
-
-    a {
-      color: #53bdeb;
     }
 
     #inputBox {
@@ -106,41 +116,41 @@
       border: none;
       background: #00a884;
       color: white;
+    }
+
+    #replyBar {
+      display:none;
+      padding:6px;
+      font-size:12px;
+      background:#1f2c34;
+    }
+
+    .reactions span {
+      margin-right: 5px;
       cursor: pointer;
-    }
-
-    #file {
-      display: none;
-    }
-
-    #replyBox {
-      display: none;
-      padding: 6px;
-      background: #1f2c34;
-      font-size: 12px;
     }
   </style>
 </head>
 
 <body>
 
-<header>Zynvo Chat</header>
+<header>Zynvo Pro WhatsApp</header>
 
+<div id="statusBar"></div>
 <div id="chat"></div>
-<div id="replyBox"></div>
+<div id="replyBar"></div>
 
 <div id="inputBox">
-  <button onclick="fileInput.click()">➕</button>
+  <button onclick="pickFile()">➕</button>
   <button onclick="startVoice()">🎤</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-
-  <input type="file" id="file" accept="image/*,application/pdf">
+  <input type="file" id="file" accept="image/*,application/pdf,image/*">
 </div>
 
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
+  apiKey: "AIzaSy...",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat"
 });
@@ -150,8 +160,9 @@ const db = firebase.firestore();
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
-const replyBox = document.getElementById("replyBox");
+const replyBar = document.getElementById("replyBar");
 
+/* USER */
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter name:");
@@ -159,20 +170,40 @@ if (!username) {
 
   db.collection("messages").add({
     type: "system",
-    text: username + " joined the chat",
+    text: username + " joined chat",
     time: Date.now()
   });
 }
 
-/* REPLY SYSTEM */
+/* ADMIN */
+const admins = ["admin", username]; // first user becomes admin
+
+/* PROFILE */
+let pfp = localStorage.getItem("pfp");
+if (!pfp) {
+  const inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "image/*";
+  inp.onchange = () => {
+    const r = new FileReader();
+    r.onload = () => {
+      pfp = r.result;
+      localStorage.setItem("pfp", pfp);
+    };
+    r.readAsDataURL(inp.files[0]);
+  };
+  inp.click();
+}
+
+/* REPLY */
 let replyTo = null;
 window.setReply = (text) => {
   replyTo = text;
-  replyBox.style.display = "block";
-  replyBox.innerText = "Replying: " + text;
+  replyBar.style.display = "block";
+  replyBar.innerText = "Replying: " + text;
 };
 
-/* SEND TEXT */
+/* SEND */
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -181,29 +212,31 @@ function sendMsg() {
     type: "text",
     text,
     user: username,
+    pfp,
     time: Date.now(),
     reply: replyTo,
+    reactions: {},
     seenBy: [username]
   });
 
   input.value = "";
+  replyBar.style.display = "none";
   replyTo = null;
-  replyBox.style.display = "none";
 }
 
 /* DELETE */
-window.deleteMsg = (id) => {
+window.deleteMsg = (id, user) => {
+  if (user !== username && !admins.includes(username)) return;
   db.collection("messages").doc(id).delete();
 };
 
-/* FILE (IMAGE + PDF) */
+/* FILE */
 fileInput.onchange = () => {
   const file = fileInput.files[0];
   const reader = new FileReader();
 
   reader.onload = () => {
     let type = "file";
-
     if (file.type.startsWith("image")) type = "image";
     if (file.type === "application/pdf") type = "pdf";
 
@@ -212,8 +245,8 @@ fileInput.onchange = () => {
       data: reader.result,
       fileName: file.name,
       user: username,
-      time: Date.now(),
-      seenBy: [username]
+      pfp,
+      time: Date.now()
     });
   };
 
@@ -222,33 +255,30 @@ fileInput.onchange = () => {
 
 /* VOICE */
 function startVoice() {
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-      const recorder = new MediaRecorder(stream);
-      let chunks = [];
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    const rec = new MediaRecorder(stream);
+    let chunks = [];
 
-      recorder.ondataavailable = e => chunks.push(e.data);
+    rec.ondataavailable = e => chunks.push(e.data);
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        const reader = new FileReader();
-
-        reader.onload = () => {
-          db.collection("messages").add({
-            type: "voice",
-            audio: reader.result,
-            user: username,
-            time: Date.now(),
-            seenBy: [username]
-          });
-        };
-
-        reader.readAsDataURL(blob);
+    rec.onstop = () => {
+      const blob = new Blob(chunks);
+      const r = new FileReader();
+      r.onload = () => {
+        db.collection("messages").add({
+          type: "voice",
+          audio: r.result,
+          user: username,
+          pfp,
+          time: Date.now()
+        });
       };
+      r.readAsDataURL(blob);
+    };
 
-      recorder.start();
-      setTimeout(() => recorder.stop(), 4000);
-    });
+    rec.start();
+    setTimeout(() => rec.stop(), 4000);
+  });
 }
 
 /* LOAD CHAT */
@@ -265,7 +295,7 @@ db.collection("messages")
     const div = document.createElement("div");
 
     if (msg.type === "system") {
-      div.className = "msg system";
+      div.className = "system";
       div.innerText = msg.text;
       chat.appendChild(div);
       return;
@@ -273,41 +303,24 @@ db.collection("messages")
 
     div.className = "msg " + (msg.user === username ? "me" : "");
 
-    if (msg.user !== username) {
-      db.collection("messages").doc(id).update({
-        seenBy: firebase.firestore.FieldValue.arrayUnion(username)
-      });
-    }
+    let html = `
+      <div class="nameRow">
+        <img class="pfp" src="${msg.pfp || ''}">
+        <span>${msg.user}</span>
+      </div>
+    `;
 
-    let ticks = msg.seenBy?.length > 1 ? "✔✔" : "✔";
+    if (msg.reply) html += `<div style="font-size:11px;opacity:0.7;">↩ ${msg.reply}</div>`;
+    if (msg.text) html += msg.text;
 
-    let html = `<div class="name">${msg.user}</div>`;
-
-    if (msg.reply) {
-      html += `<div style="font-size:11px;opacity:0.7;">↩ ${msg.reply}</div>`;
-    }
-
-    if (msg.type === "text") {
-      html += msg.text;
-    }
-
-    if (msg.type === "image") {
-      html += `<img src="${msg.data}">`;
-    }
-
-    if (msg.type === "pdf") {
-      html += `📄 <a href="${msg.data}" target="_blank">${msg.fileName}</a>`;
-    }
-
-    if (msg.type === "voice") {
-      html += `<audio controls src="${msg.audio}"></audio>`;
-    }
+    if (msg.type === "image") html += `<img src="${msg.data}">`;
+    if (msg.type === "pdf") html += `<a href="${msg.data}" target="_blank">${msg.fileName}</a>`;
+    if (msg.type === "voice") html += `<audio controls src="${msg.audio}"></audio>`;
 
     html += `
       <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
-      <div class="ticks">${ticks}</div>
-      <button onclick="deleteMsg('${id}')">🗑</button>
-      <button onclick="setReply('${msg.text || "media"}')">↩</button>
+      <button onclick="deleteMsg('${id}','${msg.user}')">🗑</button>
+      <button onclick="setReply('${msg.text || "file"}')">↩</button>
     `;
 
     div.innerHTML = html;
@@ -319,5 +332,4 @@ db.collection("messages")
 </script>
 
 </body>
-                                         </html>
-  
+  </html>
