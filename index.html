@@ -2,349 +2,195 @@
 <html>
 <head>
   <title>Zynvo</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #fdf6ec;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+    body { margin:0; font-family:Segoe UI; background:#fdf6ec; }
 
-    header {
-      background: #1c1c1c;
-      color: #fff;
-      padding: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 16px;
-    }
-
-    #online {
-      font-size: 12px;
-      color: #9cff9c;
-    }
-
-    #chat {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .msg {
-      max-width: 80%;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 12px;
-      font-size: 14px;
-      position: relative;
-      word-wrap: break-word;
-    }
-
-    .me {
-      background: #dcf8c6;
-      align-self: flex-end;
-    }
-
-    .other {
-      background: #fff;
-      border: 1px solid #ddd;
-      align-self: flex-start;
-    }
-
-    .name {
-      font-size: 11px;
-      opacity: 0.6;
-    }
-
-    .time {
-      font-size: 9px;
-      opacity: 0.5;
-    }
-
-    .tick {
-      font-size: 11px;
-      position: absolute;
-      bottom: 4px;
-      right: 6px;
-      opacity: 0.6;
-    }
-
-    img {
-      max-width: 100%;
-      border-radius: 10px;
-      margin-top: 5px;
-    }
-
-    #inputBox {
-      display: flex;
-      padding: 8px;
-      background: #1c1c1c;
-      gap: 5px;
+    #login {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      padding:20px;
+      margin-top:100px;
+      max-width:300px;
+      margin-left:auto;
+      margin-right:auto;
     }
 
     input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
-      font-size: 14px;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #ccc;
     }
 
     button {
-      padding: 10px;
-      border-radius: 50%;
-      border: none;
-      background: #25d366;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
+      padding:10px;
+      border:none;
+      background:#25d366;
+      color:white;
+      border-radius:10px;
+      cursor:pointer;
     }
 
-    #file {
-      display: none;
+    #chatUI { display:none; height:100vh; flex-direction:column; }
+
+    header {
+      background:#1c1c1c;
+      color:white;
+      padding:12px;
     }
 
-    #menu {
-      position: absolute;
-      top: 50px;
-      right: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-      display: none;
-      z-index: 1000;
+    #chat {
+      flex:1;
+      overflow:auto;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
     }
 
-    #menu div {
-      padding: 5px;
-      cursor: pointer;
+    .msg {
+      max-width:75%;
+      padding:10px;
+      margin:5px 0;
+      border-radius:10px;
     }
 
-    @media (max-width: 600px) {
-      body {
-        height: 100dvh;
-      }
+    .me { background:#dcf8c6; align-self:flex-end; }
+    .other { background:white; border:1px solid #ddd; }
+
+    #inputBox {
+      display:flex;
+      padding:10px;
+      background:#1c1c1c;
+      gap:5px;
     }
+
+    #inputBox input { flex:1; }
   </style>
 </head>
 
 <body>
 
-<header>
-  <div>Zynvo</div>
-  <div id="online">🟢 0 online</div>
-  <div onclick="toggleMenu()" style="cursor:pointer;">⋮</div>
-</header>
+<!-- LOGIN -->
+<div id="login">
+  <h3>Phone Login</h3>
+  <input id="phone" placeholder="+91XXXXXXXXXX">
+  <div id="recaptcha-container"></div>
+  <button onclick="sendOTP()">Send OTP</button>
 
-<div id="menu">
-  <div onclick="clearChat()">🗑️ Clear Chat</div>
-  <div onclick="changeName()">👤 Change Name</div>
+  <input id="otp" placeholder="Enter OTP">
+  <button onclick="verifyOTP()">Verify</button>
 </div>
 
-<div id="chat"></div>
+<!-- CHAT -->
+<div id="chatUI">
+  <header>Zynvo Chat</header>
 
-<div id="inputBox">
-  <button onclick="pickImage()">➕</button>
-  <input id="msgInput" placeholder="Message...">
-  <button onclick="sendMsg()">➤</button>
-  <!-- ✅ UPDATED -->
-  <input type="file" id="file" accept="image/*,application/pdf">
+  <div id="chat"></div>
+
+  <div id="inputBox">
+    <input id="msgInput" placeholder="Message...">
+    <button onclick="sendMsg()">➤</button>
+  </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, deleteDoc } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
-  projectId: "anantdhamchat",
-  storageBucket: "anantdhamchat.firebasestorage.app",
-  messagingSenderId: "543392456660",
-  appId: "1:543392456660:web:c95fcddcd6ee603ea04041"
+  projectId: "anantdhamchat"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 const chat = document.getElementById("chat");
-const input = document.getElementById("msgInput");
-const fileInput = document.getElementById("file");
-const onlineDiv = document.getElementById("online");
+const msgInput = document.getElementById("msgInput");
 
-// USER
-let username = localStorage.getItem("username");
-if (!username) {
-  username = prompt("Enter your name:");
-  localStorage.setItem("username", username);
-}
+let currentUser = null;
+let confirmationResult = null;
 
-// MENU
-window.toggleMenu = () => {
-  const m = document.getElementById("menu");
-  m.style.display = m.style.display === "block" ? "none" : "block";
+// CAPTCHA (required for phone auth)
+window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+  "recaptcha-container",
+  { size: "invisible" }
+);
+
+// SEND OTP
+window.sendOTP = async () => {
+  const phone = document.getElementById("phone").value;
+
+  confirmationResult = await auth.signInWithPhoneNumber(
+    phone,
+    window.recaptchaVerifier
+  );
+
+  alert("OTP sent");
 };
 
-window.changeName = () => {
-  localStorage.removeItem("username");
-  location.reload();
+// VERIFY OTP
+window.verifyOTP = async () => {
+  const otp = document.getElementById("otp").value;
+
+  const result = await confirmationResult.confirm(otp);
+  currentUser = result.user;
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chatUI").style.display = "flex";
+
+  loadChat();
 };
 
-// CLEAR CHAT
-window.clearChat = async () => {
-  const confirmClear = confirm("Clear chat for everyone?");
-  if (!confirmClear) return;
-
-  const snapshot = await getDocs(collection(db, "messages"));
-
-  snapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "messages", docSnap.id));
-  });
-};
-
-// ONLINE SYSTEM
-setInterval(()=>{
-  setDoc(doc(db,"users",username),{
-    name: username,
-    lastSeen: Date.now()
-  });
-},3000);
-
-onSnapshot(collection(db,"users"), snap=>{
-  let count = 0;
-  snap.forEach(d=>{
-    const u = d.data();
-    if(Date.now() - u.lastSeen < 5000) count++;
-  });
-  onlineDiv.innerText = "🟢 " + count + " online";
-});
-
-setInterval(async () => {
-  await setDoc(doc(db, "users", username), {
-    name: username,
-    lastSeen: Date.now()
-  });
-}, 2000);
-
-onSnapshot(collection(db, "users"), snap => {
-  let count = 0;
-  const now = Date.now();
-
-  snap.forEach(d => {
-    const u = d.data();
-    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
-  });
-
-  onlineDiv.innerText = "🟢 " + count + " online";
-});
-
-// FILE (IMAGE + PDF)
-window.pickImage = () => fileInput.click();
-
-fileInput.onchange = () => {
-  const file = fileInput.files[0];
-  const reader = new FileReader();
-
-  reader.onload = async () => {
-
-    if (file.type === "application/pdf") {
-      await addDoc(collection(db, "messages"), {
-        pdf: reader.result,
-        fileName: file.name,
-        user: username,
-        time: Date.now(),
-        seen: false
-      });
-    } else {
-      await addDoc(collection(db, "messages"), {
-        image: reader.result,
-        user: username,
-        time: Date.now(),
-        seen: false
-      });
-    }
-
-  };
-
-  reader.readAsDataURL(file);
-};
-
-// TEXT
+// SEND MESSAGE
 window.sendMsg = async () => {
-  const text = input.value.trim();
+  const text = msgInput.value.trim();
   if (!text) return;
 
-  await addDoc(collection(db, "messages"), {
+  await db.collection("messages").add({
     text,
-    user: username,
-    time: Date.now(),
+    uid: currentUser.uid,
+    phone: currentUser.phoneNumber,
+    time: firebase.firestore.FieldValue.serverTimestamp(),
     seen: false
   });
 
-  input.value = "";
+  msgInput.value = "";
 };
 
-// LOAD
-const q = query(collection(db,"messages"), orderBy("time"), limit(50));
+// LOAD CHAT (STABLE)
+function loadChat() {
+  db.collection("messages")
+    .orderBy("time")
+    .onSnapshot(snapshot => {
 
-onSnapshot(q, snapshot => {
-  chat.innerHTML = "";
+      chat.innerHTML = "";
 
-  snapshot.forEach(async docSnap => {
-    const msg = docSnap.data();
-    const id = docSnap.id;
+      snapshot.forEach(docSnap => {
+        const msg = docSnap.data();
 
-    if(msg.user !== username && !msg.seen){
-      setDoc(doc(db,"messages",id),{ seen:true }, { merge:true });
-    }
+        const div = document.createElement("div");
+        div.className = "msg " +
+          (msg.uid === currentUser.uid ? "me" : "other");
 
-    const div = document.createElement("div");
-    div.className = "msg " + (msg.user === username ? "me" : "other");
+        div.innerHTML = `
+          <b>${msg.phone}</b><br>
+          ${msg.text || ""}
+        `;
 
-    let html = `<div class="name">${msg.user}</div>`;
+        chat.appendChild(div);
+      });
 
-    if (msg.text) html += `<div>${msg.text}</div>`;
-    if (msg.image) html += `<img src="${msg.image}">`;
-
-    // ✅ PDF DISPLAY
-    if (msg.pdf) {
-      html += `
-        <div style="margin-top:5px;">
-          📄 <a href="${msg.pdf}" target="_blank">
-            ${msg.fileName || "Open PDF"}
-          </a>
-        </div>
-      `;
-    }
-
-    html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
-
-    if(msg.user === username){
-      html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
-    }
-
-    div.innerHTML = html;
-    chat.appendChild(div);
-  });
-
-  chat.scrollTop = chat.scrollHeight;
-});
-
-// ENTER
-input.addEventListener("keypress", e => {
-  if (e.key === "Enter") sendMsg();
-});
-  
+      chat.scrollTop = chat.scrollHeight;
+    });
+}
 </script>
 
 </body>
-</html>
+      </html>
