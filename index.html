@@ -196,16 +196,34 @@ function deleteMsg(id, user) {
 db.collection("messages").orderBy("time").limit(50)
 .onSnapshot(snapshot => {
 
-  snapshot.docChanges().forEach(change => {
+  chat.innerHTML = ""; // ✅ reload full chat
 
-    if (change.type === "added") {
+  snapshot.forEach(doc => {
+    const msg = doc.data();
 
-      const msg = change.doc.data();
+    const div = document.createElement("div");
+    div.className = "msg " + (msg.user === username ? "me" : "other");
 
-      const div = document.createElement("div");
-      div.className = "msg " + (msg.user === username ? "me" : "other");
+    let html = `<b>${msg.user}</b>`;
 
-      let html = `<b>${msg.user}</b>`;
+    // delete button
+    if (msg.user === username) {
+      html += `<div class="deleteBtn" onclick="deleteMsg('${doc.id}','${msg.user}')">🗑️</div>`;
+    }
+
+    if (msg.text) html += `<div>${msg.text}</div>`;
+    if (msg.image) html += `<img src="${msg.image}">`;
+
+    if (msg.pdf) {
+      html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
+    }
+
+    div.innerHTML = html;
+    chat.appendChild(div);
+  });
+
+  chat.scrollTop = chat.scrollHeight;
+});
 
       // delete button (only for own msg)
       if (msg.user === username) {
