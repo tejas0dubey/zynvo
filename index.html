@@ -223,9 +223,7 @@ if (!username) {
   localStorage.setItem("username", username);
 }
 
-window.toggleTheme = () => {
-  document.body.classList.toggle("dark");
-};
+window.toggleTheme = () => document.body.classList.toggle("dark");
 
 window.toggleMenu = () => {
   const m = document.getElementById("menu");
@@ -246,23 +244,7 @@ window.clearChat = async () => {
   });
 };
 
-// ONLINE SYSTEM (UNCHANGED)
-setInterval(()=>{
-  setDoc(doc(db,"users",username),{
-    name: username,
-    lastSeen: Date.now()
-  });
-},3000);
-
-onSnapshot(collection(db,"users"), snap=>{
-  let count = 0;
-  snap.forEach(d=>{
-    const u = d.data();
-    if(Date.now() - u.lastSeen < 5000) count++;
-  });
-  onlineDiv.innerText = "🟢 " + count + " online";
-});
-
+// ONLINE
 setInterval(async () => {
   await setDoc(doc(db, "users", username), {
     name: username,
@@ -289,13 +271,11 @@ fileInput.onchange = () => {
 
   reader.onload = async () => {
 
-    // PREVIEW
     preview.style.display = "block";
     preview.innerHTML = file.type === "application/pdf"
       ? `📄 ${file.name}`
       : `<img src="${reader.result}">`;
 
-    // PROGRESS
     progressBar.style.width = "0%";
     let p = 0;
     const interval = setInterval(() => {
@@ -304,20 +284,19 @@ fileInput.onchange = () => {
       if (p >= 100) clearInterval(interval);
     }, 50);
 
-    // ORIGINAL LOGIC
     if (file.type === "application/pdf") {
       await addDoc(collection(db, "messages"), {
         pdf: reader.result,
         fileName: file.name,
         user: username,
-        time: Date.now(),
+        time: Date.now() + Math.random(),
         seen: false
       });
     } else {
       await addDoc(collection(db, "messages"), {
         image: reader.result,
         user: username,
-        time: Date.now(),
+        time: Date.now() + Math.random(),
         seen: false
       });
     }
@@ -336,7 +315,7 @@ window.sendMsg = async () => {
   await addDoc(collection(db, "messages"), {
     text,
     user: username,
-    time: Date.now(),
+    time: Date.now() + Math.random(), // ✅ FIX HERE
     seen: false
   });
 
@@ -349,12 +328,14 @@ const q = query(collection(db,"messages"), orderBy("time"), limit(50));
 onSnapshot(q, snapshot => {
   chat.innerHTML = "";
 
-  snapshot.forEach(async docSnap => {
+  snapshot.forEach(docSnap => {
     const msg = docSnap.data();
     const id = docSnap.id;
 
-    if(msg.user !== username && !msg.seen){
-      setDoc(doc(db,"messages",id),{ seen:true }, { merge:true });
+    if (msg.user !== username && !msg.seen) {
+      setTimeout(() => {
+        setDoc(doc(db,"messages",id), { seen:true }, { merge:true });
+      }, 0);
     }
 
     const div = document.createElement("div");
@@ -370,8 +351,6 @@ onSnapshot(q, snapshot => {
     }
 
     html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
-
-    // REACTIONS (UI only)
     html += `<div class="reactions" onclick="react(this)">👍 ❤️ 😂</div>`;
 
     if(msg.user === username){
@@ -389,11 +368,10 @@ window.react = (el) => {
   el.innerHTML = "❤️";
 };
 
-// ENTER
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
 </script>
 
 </body>
-      </html>
+    </html>
