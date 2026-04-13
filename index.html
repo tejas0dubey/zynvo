@@ -2,15 +2,13 @@
 <html>
 <head>
   <title>Zynvo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI';
+      font-family: 'Segoe UI', sans-serif;
       background: #fdf6ec;
       display: flex;
       flex-direction: column;
@@ -19,10 +17,17 @@
 
     header {
       background: #1c1c1c;
-      color: white;
+      color: #fff;
       padding: 12px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+    }
+
+    #online {
+      font-size: 12px;
+      color: #9cff9c;
     }
 
     #chat {
@@ -34,11 +39,13 @@
     }
 
     .msg {
-      max-width: 75%;
+      max-width: 80%;
       padding: 10px;
-      margin: 6px 0;
+      margin: 5px 0;
       border-radius: 12px;
+      font-size: 14px;
       position: relative;
+      word-wrap: break-word;
     }
 
     .me {
@@ -52,46 +59,35 @@
       align-self: flex-start;
     }
 
-    .replyBox {
+    .name {
       font-size: 11px;
-      background: rgba(0,0,0,0.05);
-      padding: 5px;
-      border-left: 3px solid #25d366;
-      margin-bottom: 5px;
+      opacity: 0.6;
+    }
+
+    .time {
+      font-size: 9px;
+      opacity: 0.5;
     }
 
     .tick {
-      position: absolute;
-      bottom: 5px;
-      right: 8px;
       font-size: 11px;
-      opacity: 0.7;
-    }
-
-    .deleteBtn {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      font-size: 10px;
-      cursor: pointer;
+      bottom: 4px;
+      right: 6px;
+      opacity: 0.6;
     }
 
-    #replyPreview {
-      display: none;
-      padding: 6px;
-      background: #eee;
-      font-size: 12px;
+    img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 5px;
     }
 
     #inputBox {
-      background: #1c1c1c;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #inputRow {
       display: flex;
       padding: 8px;
+      background: #1c1c1c;
+      gap: 5px;
     }
 
     input {
@@ -99,17 +95,43 @@
       padding: 10px;
       border-radius: 20px;
       border: none;
-      outline: none;
+      font-size: 14px;
     }
 
     button {
-      margin-left: 5px;
       padding: 10px;
       border-radius: 50%;
       border: none;
       background: #25d366;
       color: white;
+      font-size: 16px;
       cursor: pointer;
+    }
+
+    #file {
+      display: none;
+    }
+
+    #menu {
+      position: absolute;
+      top: 50px;
+      right: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+      z-index: 1000;
+    }
+
+    #menu div {
+      padding: 5px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        height: 100dvh;
+      }
     }
   </style>
 </head>
@@ -118,191 +140,210 @@
 
 <header>
   <div>Zynvo</div>
-  <div>🟢 Live</div>
+  <div id="online">🟢 0 online</div>
+  <div onclick="toggleMenu()" style="cursor:pointer;">⋮</div>
 </header>
+
+<div id="menu">
+  <div onclick="clearChat()">🗑️ Clear Chat</div>
+  <div onclick="changeName()">👤 Change Name</div>
+</div>
 
 <div id="chat"></div>
 
 <div id="inputBox">
-  <div id="replyPreview"></div>
-
-  <div id="inputRow">
-    <button onclick="pickFile()">➕</button>
-    <input id="msgInput" placeholder="Message...">
-    <button onclick="sendMsg()">➤</button>
-  </div>
-
-  <input type="file" id="file" hidden accept="image/*,application/pdf">
+  <button onclick="pickImage()">➕</button>
+  <input id="msgInput" placeholder="Message...">
+  <button onclick="sendMsg()">➤</button>
+  <!-- ✅ UPDATED -->
+  <input type="file" id="file" accept="image/*,application/pdf">
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, doc, setDoc, getDocs, deleteDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
-  projectId: "anantdhamchat"
+  projectId: "anantdhamchat",
+  storageBucket: "anantdhamchat.firebasestorage.app",
+  messagingSenderId: "543392456660",
+  appId: "1:543392456660:web:c95fcddcd6ee603ea04041"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
-const replyPreview = document.getElementById("replyPreview");
+const onlineDiv = document.getElementById("online");
 
+// USER
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter your name:");
   localStorage.setItem("username", username);
 }
 
-let replyTo = null;
-const rendered = new Map();
+// MENU
+window.toggleMenu = () => {
+  const m = document.getElementById("menu");
+  m.style.display = m.style.display === "block" ? "none" : "block";
+};
 
-// SEND MESSAGE
-function sendMsg() {
-  const text = input.value.trim();
-  if (!text && !replyTo) return;
+window.changeName = () => {
+  localStorage.removeItem("username");
+  location.reload();
+};
 
-  db.collection("messages").add({
-    text: text || null,
-    user: username,
-    time: firebase.firestore.FieldValue.serverTimestamp(),
-    seen: false,
-    reply: replyTo || null
+// CLEAR CHAT
+window.clearChat = async () => {
+  const confirmClear = confirm("Clear chat for everyone?");
+  if (!confirmClear) return;
+
+  const snapshot = await getDocs(collection(db, "messages"));
+
+  snapshot.forEach(async (docSnap) => {
+    await deleteDoc(doc(db, "messages", docSnap.id));
+  });
+};
+
+// ONLINE SYSTEM
+setInterval(()=>{
+  setDoc(doc(db,"users",username),{
+    name: username,
+    lastSeen: Date.now()
+  });
+},3000);
+
+onSnapshot(collection(db,"users"), snap=>{
+  let count = 0;
+  snap.forEach(d=>{
+    const u = d.data();
+    if(Date.now() - u.lastSeen < 5000) count++;
+  });
+  onlineDiv.innerText = "🟢 " + count + " online";
+});
+
+setInterval(async () => {
+  await setDoc(doc(db, "users", username), {
+    name: username,
+    lastSeen: Date.now()
+  });
+}, 2000);
+
+onSnapshot(collection(db, "users"), snap => {
+  let count = 0;
+  const now = Date.now();
+
+  snap.forEach(d => {
+    const u = d.data();
+    if (u.lastSeen && (now - u.lastSeen < 7000)) count++;
   });
 
-  input.value = "";
-  replyTo = null;
-  replyPreview.style.display = "none";
-}
+  onlineDiv.innerText = "🟢 " + count + " online";
+});
 
-// FILE
-function pickFile() {
-  fileInput.click();
-}
+// FILE (IMAGE + PDF)
+window.pickImage = () => fileInput.click();
 
 fileInput.onchange = () => {
   const file = fileInput.files[0];
-  if (!file) return;
-
   const reader = new FileReader();
 
-  reader.onload = () => {
-    let data = {
-      user: username,
-      time: firebase.firestore.FieldValue.serverTimestamp(),
-      seen: false,
-      reply: replyTo || null
-    };
+  reader.onload = async () => {
 
     if (file.type === "application/pdf") {
-      data.pdf = reader.result;
-      data.fileName = file.name;
+      await addDoc(collection(db, "messages"), {
+        pdf: reader.result,
+        fileName: file.name,
+        user: username,
+        time: Date.now(),
+        seen: false
+      });
     } else {
-      data.image = reader.result;
+      await addDoc(collection(db, "messages"), {
+        image: reader.result,
+        user: username,
+        time: Date.now(),
+        seen: false
+      });
     }
 
-    db.collection("messages").add(data);
-
-    replyTo = null;
-    replyPreview.style.display = "none";
   };
 
   reader.readAsDataURL(file);
 };
 
-// DELETE
-function deleteMsg(id) {
-  db.collection("messages").doc(id).delete();
-}
+// TEXT
+window.sendMsg = async () => {
+  const text = input.value.trim();
+  if (!text) return;
 
-// REPLY
-function setReply(msg) {
-  replyTo = {
-    text: msg.text || "File",
-    user: msg.user
-  };
+  await addDoc(collection(db, "messages"), {
+    text,
+    user: username,
+    time: Date.now(),
+    seen: false
+  });
 
-  replyPreview.innerText = `Replying to ${msg.user}: ${replyTo.text}`;
-  replyPreview.style.display = "block";
-}
+  input.value = "";
+};
 
-// FIRESTORE REALTIME (FIXED)
-db.collection("messages")
-.orderBy("time")
-.onSnapshot(snapshot => {
+// LOAD
+const q = query(collection(db,"messages"), orderBy("time"), limit(50));
 
-  snapshot.docChanges().forEach(change => {
+onSnapshot(q, snapshot => {
+  chat.innerHTML = "";
 
-    const msg = change.doc.data();
-    const id = change.doc.id;
+  snapshot.forEach(async docSnap => {
+    const msg = docSnap.data();
+    const id = docSnap.id;
 
-    // ADD
-    if (change.type === "added") {
-
-      if (rendered.has(id)) return;
-      rendered.set(id, true);
-
-      const div = document.createElement("div");
-      div.className = "msg " + (msg.user === username ? "me" : "other");
-      div.id = id;
-
-      div.onclick = () => setReply(msg);
-
-      let html = `<b>${msg.user}</b>`;
-
-      if (msg.reply) {
-        html += `<div class="replyBox"><b>${msg.reply.user}</b>: ${msg.reply.text}</div>`;
-      }
-
-      if (msg.text) html += `<div>${msg.text}</div>`;
-      if (msg.image) html += `<img src="${msg.image}" width="150">`;
-      if (msg.pdf) html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
-
-      if (msg.user === username) {
-        html += `
-          <div class="deleteBtn" onclick="event.stopPropagation(); deleteMsg('${id}')">🗑️</div>
-          <div class="tick">${msg.seen ? "✔✔" : "✔"}</div>
-        `;
-      }
-
-      div.innerHTML = html;
-      chat.appendChild(div);
+    if(msg.user !== username && !msg.seen){
+      setDoc(doc(db,"messages",id),{ seen:true }, { merge:true });
     }
 
-    // UPDATE (seen tick fix)
-    if (change.type === "modified") {
-      const el = document.getElementById(id);
-      if (el) {
-        const tick = el.querySelector(".tick");
-        if (tick) tick.innerText = msg.seen ? "✔✔" : "✔";
-      }
+    const div = document.createElement("div");
+    div.className = "msg " + (msg.user === username ? "me" : "other");
+
+    let html = `<div class="name">${msg.user}</div>`;
+
+    if (msg.text) html += `<div>${msg.text}</div>`;
+    if (msg.image) html += `<img src="${msg.image}">`;
+
+    // ✅ PDF DISPLAY
+    if (msg.pdf) {
+      html += `
+        <div style="margin-top:5px;">
+          📄 <a href="${msg.pdf}" target="_blank">
+            ${msg.fileName || "Open PDF"}
+          </a>
+        </div>
+      `;
     }
 
-    // DELETE
-    if (change.type === "removed") {
-      const el = document.getElementById(id);
-      if (el) el.remove();
-      rendered.delete(id);
+    html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
+
+    if(msg.user === username){
+      html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
     }
 
-    // SAFE SEEN UPDATE
-    if (msg.user !== username && !msg.seen) {
-      db.collection("messages").doc(id).update({
-        seen: true
-      });
-    }
-
+    div.innerHTML = html;
+    chat.appendChild(div);
   });
 
   chat.scrollTop = chat.scrollHeight;
 });
 
-// ENTER KEY
+// ENTER
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
+  
 </script>
 
 </body>
