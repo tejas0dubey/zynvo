@@ -25,13 +25,6 @@
       font-weight: 600;
     }
 
-    #online {
-      font-size: 12px;
-      text-align: center;
-      color: #00ffcc;
-      padding: 4px;
-    }
-
     #chat {
       flex: 1;
       overflow-y: auto;
@@ -48,12 +41,18 @@
       background: #202c33;
       position: relative;
       word-wrap: break-word;
-      animation: pop 0.15s ease;
     }
 
     .me {
       background: #005c4b;
       align-self: flex-end;
+    }
+
+    .system {
+      align-self: center;
+      background: #2a3942;
+      font-size: 12px;
+      opacity: 0.8;
     }
 
     .name {
@@ -72,16 +71,6 @@
       bottom: 4px;
       right: 8px;
       font-size: 11px;
-    }
-
-    img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 5px;
-    }
-
-    a {
-      color: #53bdeb;
     }
 
     #inputBox {
@@ -111,45 +100,26 @@
       cursor: pointer;
     }
 
-    #file { display:none; }
-
-    #emojiBox {
+    #replyBox {
       display:none;
-      padding:8px;
-      background:#111b21;
-      flex-wrap: wrap;
-    }
-
-    .emoji {
-      margin:4px;
-      cursor:pointer;
-      font-size:18px;
-    }
-
-    @keyframes pop {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      padding:6px;
+      background:#1f2c34;
+      font-size:12px;
     }
   </style>
 </head>
 
 <body>
 
-<header>Zynvo Chat</header>
-<div id="online">🟢 0 online</div>
+<header>Zynvo Group Chat</header>
 
 <div id="chat"></div>
-
-<div id="emojiBox">
-😀 😃 😄 😁 😂 😊 ❤️ 🔥 👍 😎
-</div>
+<div id="replyBox"></div>
 
 <div id="inputBox">
-  <button onclick="fileInput.click()">➕</button>
-  <button onclick="toggleEmoji()">😊</button>
+  <button onclick="startVoice()">🎤</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-  <input type="file" id="file" accept="image/*,application/pdf">
 </div>
 
 <script>
@@ -163,44 +133,26 @@ const db = firebase.firestore();
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
-const fileInput = document.getElementById("file");
-const online = document.getElementById("online");
-const emojiBox = document.getElementById("emojiBox");
+const replyBox = document.getElementById("replyBox");
 
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter name:");
   localStorage.setItem("username", username);
+
+  db.collection("messages").add({
+    type: "system",
+    text: username + " joined the chat",
+    time: Date.now()
+  });
 }
 
-/* ONLINE */
-setInterval(() => {
-  db.collection("users").doc(username).set({
-    last: Date.now()
-  });
-}, 3000);
-
-db.collection("users").onSnapshot(snap => {
-  let count = 0;
-  const now = Date.now();
-
-  snap.forEach(d => {
-    if (now - d.data().last < 8000) count++;
-  });
-
-  online.innerText = "🟢 " + count + " online";
-});
-
-/* EMOJI */
-window.toggleEmoji = () => {
-  emojiBox.style.display =
-    emojiBox.style.display === "block" ? "none" : "block";
-};
-
-emojiBox.onclick = (e) => {
-  if (e.target.classList.contains("emoji")) {
-    input.value += e.target.innerText;
-  }
+/* REPLY SYSTEM */
+let replyTo = null;
+window.setReply = (text, id) => {
+  replyTo = {text, id};
+  replyBox.style.display = "block";
+  replyBox.innerText = "Replying to: " + text;
 };
 
 /* SEND */
@@ -213,35 +165,52 @@ function sendMsg() {
     text,
     user: username,
     time: Date.now(),
+    reply: replyTo,
     seenBy: [username]
   });
 
   input.value = "";
+  replyTo = null;
+  replyBox.style.display = "none";
 }
 
-/* FILE */
-fileInput.onchange = () => {
-  const file = fileInput.files[0];
-  const reader = new FileReader();
-
-  reader.onload = () => {
-    let type = "file";
-    if (file.type.startsWith("image")) type = "image";
-
-    db.collection("messages").add({
-      type,
-      data: reader.result,
-      fileName: file.name,
-      user: username,
-      time: Date.now(),
-      seenBy: [username]
-    });
-  };
-
-  reader.readAsDataURL(file);
+/* DELETE */
+window.deleteMsg = (id) => {
+  db.collection("messages").doc(id).delete();
 };
 
-/* READ + RENDER */
+/* VOICE MESSAGE */
+function startVoice() {
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      const recorder = new MediaRecorder(stream);
+      let chunks = [];
+
+      recorder.ondataavailable = e => chunks.push(e.data);
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          db.collection("messages").add({
+            type: "voice",
+            audio: reader.result,
+            user: username,
+            time: Date.now(),
+            seenBy: [username]
+          });
+        };
+
+        reader.readAsDataURL(blob);
+      };
+
+      recorder.start();
+      setTimeout(() => recorder.stop(), 4000);
+    });
+}
+
+/* LOAD CHAT */
 db.collection("messages")
 .orderBy("time")
 .onSnapshot(snap => {
@@ -252,42 +221,45 @@ db.collection("messages")
     const msg = doc.data();
     const id = doc.id;
 
-    if (msg.user !== username) {
-      db.collection("messages").doc(id).update({
-        seenBy: firebase.firestore.FieldValue.arrayUnion(username)
-      });
+    const div = document.createElement("div");
+
+    if (msg.type === "system") {
+      div.className = "msg system";
+      div.innerText = msg.text;
+      chat.appendChild(div);
+      return;
     }
 
-    let ticks = "✔";
-    if (msg.seenBy?.length > 1) ticks = "✔✔";
-
-    const div = document.createElement("div");
     div.className = "msg " + (msg.user === username ? "me" : "");
+
+    let ticks = msg.seenBy?.length > 1 ? "✔✔" : "✔";
 
     let html = `<div class="name">${msg.user}</div>`;
 
-    if (msg.type === "text") html += linkify(msg.text);
-    if (msg.type === "image") html += `<img src="${msg.data}">`;
-    if (msg.type === "file") html += `<a download="${msg.fileName}" href="${msg.data}">📄 ${msg.fileName}</a>`;
+    if (msg.reply) {
+      html += `<div style="font-size:11px;opacity:0.7;">↩ ${msg.reply.text}</div>`;
+    }
 
-    html += `<div class="time">${new Date(msg.time).toLocaleTimeString()}</div>`;
-    html += `<div class="ticks">${ticks}</div>`;
+    if (msg.type === "text") {
+      html += msg.text;
+    }
+
+    if (msg.type === "voice") {
+      html += `<audio controls src="${msg.audio}"></audio>`;
+    }
+
+    html += `
+      <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
+      <div class="ticks">${ticks}</div>
+      <button onclick="deleteMsg('${id}')">🗑</button>
+      <button onclick="setReply('${msg.text}','${id}')">↩</button>
+    `;
 
     div.innerHTML = html;
     chat.appendChild(div);
   });
 
   chat.scrollTop = chat.scrollHeight;
-});
-
-/* LINKIFY */
-function linkify(text) {
-  return text.replace(/(https?:\/\/[^\s]+)/g,
-    '<a href="$1" target="_blank">$1</a>');
-}
-
-input.addEventListener("keypress", e => {
-  if (e.key === "Enter") sendMsg();
 });
 </script>
 
