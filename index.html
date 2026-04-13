@@ -39,7 +39,7 @@
       margin: 6px 0;
       border-radius: 12px;
       position: relative;
-      cursor: pointer;
+      cursor: default;
     }
 
     .me {
@@ -100,6 +100,7 @@
       padding: 10px;
       border-radius: 20px;
       border: none;
+      outline: none;
     }
 
     button {
@@ -109,6 +110,7 @@
       border: none;
       background: #25d366;
       color: white;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -149,26 +151,26 @@ const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
 const replyPreview = document.getElementById("replyPreview");
 
-let replyTo = null;
-
-// USER
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter your name:");
   localStorage.setItem("username", username);
 }
 
-// SEND
+let replyTo = null;
+const seenCache = new Set();
+
+// SEND MESSAGE
 function sendMsg() {
   const text = input.value.trim();
   if (!text && !replyTo) return;
 
   db.collection("messages").add({
-    text,
+    text: text || null,
     user: username,
     time: Date.now(),
     seen: false,
-    reply: replyTo
+    reply: replyTo || null
   });
 
   input.value = "";
@@ -176,13 +178,15 @@ function sendMsg() {
   replyPreview.style.display = "none";
 }
 
-// FILE
+// FILE PICK
 function pickFile() {
   fileInput.click();
 }
 
 fileInput.onchange = () => {
   const file = fileInput.files[0];
+  if (!file) return;
+
   const reader = new FileReader();
 
   reader.onload = () => {
@@ -190,7 +194,7 @@ fileInput.onchange = () => {
       user: username,
       time: Date.now(),
       seen: false,
-      reply: replyTo
+      reply: replyTo || null
     };
 
     if (file.type === "application/pdf") {
@@ -209,58 +213,82 @@ fileInput.onchange = () => {
   reader.readAsDataURL(file);
 };
 
-// DELETE
+// DELETE MESSAGE
 function deleteMsg(id) {
   db.collection("messages").doc(id).delete();
 }
 
-// LOAD
-db.collection("messages").orderBy("time").limit(50)
+// REPLY SET
+function setReply(msg) {
+  replyTo = {
+    text: msg.text || "File",
+    user: msg.user
+  };
+
+  replyPreview.innerText = `Replying to ${msg.user}: ${replyTo.text}`;
+  replyPreview.style.display = "block";
+}
+
+// REALTIME LISTENER (FIXED)
+db.collection("messages")
+.orderBy("time")
+.limit(50)
 .onSnapshot(snapshot => {
 
-  chat.innerHTML = "";
+  snapshot.docChanges().forEach(change => {
 
-  snapshot.forEach(doc => {
-    const msg = doc.data();
+    const msg = change.doc.data();
+    const id = change.doc.id;
 
-    // seen update
-    if (msg.user !== username && !msg.seen) {
-      db.collection("messages").doc(doc.id).update({ seen: true });
+    if (change.type === "added") {
+
+      const div = document.createElement("div");
+      div.className = "msg " + (msg.user === username ? "me" : "other");
+
+      div.onclick = () => setReply(msg);
+
+      let html = `<b>${msg.user}</b>`;
+
+      if (msg.reply) {
+        html += `<div class="replyBox"><b>${msg.reply.user}</b>: ${msg.reply.text}</div>`;
+      }
+
+      if (msg.text) html += `<div>${msg.text}</div>`;
+      if (msg.image) html += `<img src="${msg.image}" width="150">`;
+      if (msg.pdf) html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
+
+      if (msg.user === username) {
+        html += `
+          <div class="deleteBtn" onclick="event.stopPropagation(); deleteMsg('${id}')">🗑️</div>
+          <div class="tick">${msg.seen ? "✔✔" : "✔"}</div>
+        `;
+      }
+
+      div.innerHTML = html;
+      div.id = id;
+      chat.appendChild(div);
     }
 
-    const div = document.createElement("div");
-    div.className = "msg " + (msg.user === username ? "me" : "other");
+    // MARK AS SEEN (SAFE)
+    if (msg.user !== username && !msg.seen && !seenCache.has(id)) {
+      seenCache.add(id);
 
-    // reply click
-    div.onclick = () => {
-      replyTo = msg.text || "File";
-      replyPreview.innerText = "Replying: " + replyTo;
-      replyPreview.style.display = "block";
-    };
-
-    let html = `<b>${msg.user}</b>`;
-
-    if (msg.reply) {
-      html += `<div class="replyBox">${msg.reply}</div>`;
+      db.collection("messages").doc(id).update({
+        seen: true
+      });
     }
 
-    if (msg.text) html += `<div>${msg.text}</div>`;
-    if (msg.image) html += `<img src="${msg.image}" width="150">`;
-    if (msg.pdf) html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
-
-    if (msg.user === username) {
-      html += `<div class="deleteBtn" onclick="event.stopPropagation(); deleteMsg('${doc.id}')">🗑️</div>`;
-      html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
+    if (change.type === "removed") {
+      const el = document.getElementById(id);
+      if (el) el.remove();
     }
 
-    div.innerHTML = html;
-    chat.appendChild(div);
   });
 
   chat.scrollTop = chat.scrollHeight;
 });
 
-// ENTER
+// ENTER KEY
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
