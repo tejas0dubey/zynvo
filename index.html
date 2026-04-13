@@ -4,14 +4,13 @@
   <title>Zynvo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase (stable) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI';
       background: #fdf6ec;
       display: flex;
       flex-direction: column;
@@ -35,12 +34,12 @@
     }
 
     .msg {
-      max-width: 80%;
+      max-width: 75%;
       padding: 10px;
-      margin: 5px 0;
+      margin: 6px 0;
       border-radius: 12px;
       position: relative;
-      word-wrap: break-word;
+      cursor: pointer;
     }
 
     .me {
@@ -54,30 +53,46 @@
       align-self: flex-start;
     }
 
+    .replyBox {
+      font-size: 11px;
+      background: rgba(0,0,0,0.05);
+      padding: 5px;
+      border-left: 3px solid #25d366;
+      margin-bottom: 5px;
+    }
+
+    .tick {
+      position: absolute;
+      bottom: 5px;
+      right: 8px;
+      font-size: 11px;
+      opacity: 0.6;
+    }
+
     .deleteBtn {
       position: absolute;
       top: 5px;
       right: 5px;
-      cursor: pointer;
       font-size: 10px;
+      cursor: pointer;
     }
 
-    img {
-      max-width: 100%;
-      border-radius: 10px;
-      margin-top: 5px;
-    }
-
-    a {
-      display: block;
-      margin-top: 5px;
+    #replyPreview {
+      display: none;
+      padding: 6px;
+      background: #eee;
+      font-size: 12px;
     }
 
     #inputBox {
       display: flex;
-      padding: 8px;
+      flex-direction: column;
       background: #1c1c1c;
-      gap: 5px;
+    }
+
+    #inputRow {
+      display: flex;
+      padding: 8px;
     }
 
     input {
@@ -88,13 +103,12 @@
     }
 
     button {
+      margin-left: 5px;
       padding: 10px;
       border-radius: 50%;
       border: none;
       background: #25d366;
       color: white;
-      font-size: 16px;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -103,15 +117,20 @@
 
 <header>
   <div>Zynvo</div>
-  <div id="online">🟢 Live</div>
+  <div>🟢 Live</div>
 </header>
 
 <div id="chat"></div>
 
 <div id="inputBox">
-  <button onclick="pickFile()">➕</button>
-  <input id="msgInput" placeholder="Message...">
-  <button onclick="sendMsg()">➤</button>
+  <div id="replyPreview"></div>
+
+  <div id="inputRow">
+    <button onclick="pickFile()">➕</button>
+    <input id="msgInput" placeholder="Message...">
+    <button onclick="sendMsg()">➤</button>
+  </div>
+
   <input type="file" id="file" hidden accept="image/*,application/pdf">
 </div>
 
@@ -128,94 +147,110 @@ const db = firebase.firestore();
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("file");
+const replyPreview = document.getElementById("replyPreview");
 
+let replyTo = null;
+
+// USER
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter your name:");
   localStorage.setItem("username", username);
 }
 
-// SEND TEXT
+// SEND
 function sendMsg() {
   const text = input.value.trim();
-  if (!text) return;
+  if (!text && !replyTo) return;
 
   db.collection("messages").add({
     text,
     user: username,
     time: Date.now(),
-    seen: false
+    seen: false,
+    reply: replyTo
   });
 
   input.value = "";
+  replyTo = null;
+  replyPreview.style.display = "none";
 }
 
-// FILE PICK
+// FILE
 function pickFile() {
   fileInput.click();
 }
 
-// FILE SEND
 fileInput.onchange = () => {
   const file = fileInput.files[0];
-  if (!file) return;
-
   const reader = new FileReader();
 
   reader.onload = () => {
+    let data = {
+      user: username,
+      time: Date.now(),
+      seen: false,
+      reply: replyTo
+    };
 
     if (file.type === "application/pdf") {
-      db.collection("messages").add({
-        pdf: reader.result,
-        fileName: file.name,
-        user: username,
-        time: Date.now(),
-        seen: false
-      });
+      data.pdf = reader.result;
+      data.fileName = file.name;
     } else {
-      db.collection("messages").add({
-        image: reader.result,
-        user: username,
-        time: Date.now(),
-        seen: false
-      });
+      data.image = reader.result;
     }
 
+    db.collection("messages").add(data);
+
+    replyTo = null;
+    replyPreview.style.display = "none";
   };
 
   reader.readAsDataURL(file);
 };
 
-// DELETE MESSAGE
-function deleteMsg(id, user) {
-  if (user !== username) return;
+// DELETE
+function deleteMsg(id) {
   db.collection("messages").doc(id).delete();
 }
 
-// REALTIME LOAD (FIXED - no disappearing)
+// LOAD
 db.collection("messages").orderBy("time").limit(50)
 .onSnapshot(snapshot => {
 
-  chat.innerHTML = ""; // ✅ reload full chat
+  chat.innerHTML = "";
 
   snapshot.forEach(doc => {
     const msg = doc.data();
 
+    // seen update
+    if (msg.user !== username && !msg.seen) {
+      db.collection("messages").doc(doc.id).update({ seen: true });
+    }
+
     const div = document.createElement("div");
     div.className = "msg " + (msg.user === username ? "me" : "other");
 
+    // reply click
+    div.onclick = () => {
+      replyTo = msg.text || "File";
+      replyPreview.innerText = "Replying: " + replyTo;
+      replyPreview.style.display = "block";
+    };
+
     let html = `<b>${msg.user}</b>`;
 
-    // delete button
-    if (msg.user === username) {
-      html += `<div class="deleteBtn" onclick="deleteMsg('${doc.id}','${msg.user}')">🗑️</div>`;
+    if (msg.reply) {
+      html += `<div class="replyBox">${msg.reply}</div>`;
     }
 
     if (msg.text) html += `<div>${msg.text}</div>`;
-    if (msg.image) html += `<img src="${msg.image}">`;
+    if (msg.image) html += `<img src="${msg.image}" width="150">`;
+    if (msg.pdf) html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
 
-    if (msg.pdf) {
-      html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
+    if (msg.user === username) {
+      html += `<div class="deleteBtn" onclick="event.stopPropagation(); deleteMsg('${doc.id}')">🗑️</div>`;
+      html += `<div class="tick">${msg.seen ? "✔✔" : "✔"}</div>`;
     }
 
     div.innerHTML = html;
@@ -225,38 +260,11 @@ db.collection("messages").orderBy("time").limit(50)
   chat.scrollTop = chat.scrollHeight;
 });
 
-      // delete button (only for own msg)
-      if (msg.user === username) {
-        html += `<div class="deleteBtn" onclick="deleteMsg('${change.doc.id}','${msg.user}')">🗑️</div>`;
-      }
-
-      if (msg.text) html += `<div>${msg.text}</div>`;
-      if (msg.image) html += `<img src="${msg.image}">`;
-
-      if (msg.pdf) {
-        html += `<a href="${msg.pdf}" target="_blank">📄 ${msg.fileName}</a>`;
-      }
-
-      div.innerHTML = html;
-      chat.appendChild(div);
-
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    // handle delete sync
-    if (change.type === "removed") {
-  const el = document.getElementById(change.doc.id);
-  if (el) el.remove();
-  }
-  });
-
-});
-
-// ENTER SEND
+// ENTER
 input.addEventListener("keypress", e => {
   if (e.key === "Enter") sendMsg();
 });
 </script>
 
 </body>
-  </html>
+</html>
