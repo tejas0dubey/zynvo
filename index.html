@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Zynvo Chat</title>
+  <title>Zynvo WhatsApp Clone</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -22,22 +22,7 @@
       background: #111b21;
       padding: 12px;
       text-align: center;
-      font-weight: bold;
-    }
-
-    #statusBar {
-      display: flex;
-      gap: 6px;
-      padding: 8px;
-      overflow-x: auto;
-      background: #0f1c22;
-    }
-
-    .status {
-      min-width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      border: 2px solid #00a884;
+      font-weight: 600;
     }
 
     #chat {
@@ -55,6 +40,7 @@
       border-radius: 12px;
       background: #202c33;
       position: relative;
+      word-wrap: break-word;
     }
 
     .me {
@@ -64,11 +50,9 @@
 
     .system {
       align-self: center;
-      font-size: 12px;
-      opacity: 0.7;
       background: #2a3942;
-      padding: 6px;
-      border-radius: 10px;
+      font-size: 12px;
+      opacity: 0.8;
     }
 
     .nameRow {
@@ -77,11 +61,12 @@
       gap: 6px;
       font-size: 11px;
       opacity: 0.8;
+      margin-bottom: 3px;
     }
 
     .pfp {
-      width: 22px;
-      height: 22px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       object-fit: cover;
     }
@@ -90,6 +75,13 @@
       font-size: 9px;
       opacity: 0.5;
       text-align: right;
+    }
+
+    .ticks {
+      position: absolute;
+      bottom: 4px;
+      right: 8px;
+      font-size: 11px;
     }
 
     #inputBox {
@@ -116,41 +108,49 @@
       border: none;
       background: #00a884;
       color: white;
-    }
-
-    #replyBar {
-      display:none;
-      padding:6px;
-      font-size:12px;
-      background:#1f2c34;
-    }
-
-    .reactions span {
-      margin-right: 5px;
       cursor: pointer;
+    }
+
+    img, video {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 5px;
+    }
+
+    a {
+      color: #53bdeb;
+    }
+
+    .reactions {
+      margin-top: 5px;
+      font-size: 14px;
+      display: flex;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .reaction-bubble {
+      background: #111b21;
+      padding: 2px 6px;
+      border-radius: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<header>Zynvo chat</header>
+<header>Zynvo WhatsApp Clone</header>
 
-<div id="statusBar"></div>
 <div id="chat"></div>
-<div id="replyBar"></div>
 
 <div id="inputBox">
-  <button onclick="pickFile()">➕</button>
-  <button onclick="startVoice()">🎤</button>
   <input id="msgInput" placeholder="Message...">
   <button onclick="sendMsg()">➤</button>
-  <input type="file" id="file" accept="image/*,application/pdf,image/*">
 </div>
 
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat"
 });
@@ -159,10 +159,8 @@ const db = firebase.firestore();
 
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
-const fileInput = document.getElementById("file");
-const replyBar = document.getElementById("replyBar");
 
-/* USER */
+/* ---------------- USER ---------------- */
 let username = localStorage.getItem("username");
 if (!username) {
   username = prompt("Enter name:");
@@ -170,40 +168,35 @@ if (!username) {
 
   db.collection("messages").add({
     type: "system",
-    text: username + " joined chat",
+    text: username + " joined the chat",
     time: Date.now()
   });
 }
 
-/* ADMIN */
-const admins = ["admin", username]; // first user becomes admin
-
-/* PROFILE */
+/* ---------------- PROFILE PICTURE ---------------- */
 let pfp = localStorage.getItem("pfp");
+
 if (!pfp) {
-  const inp = document.createElement("input");
-  inp.type = "file";
-  inp.accept = "image/*";
-  inp.onchange = () => {
-    const r = new FileReader();
-    r.onload = () => {
-      pfp = r.result;
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = "image/*";
+
+  picker.onchange = () => {
+    const file = picker.files[0];
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      pfp = reader.result;
       localStorage.setItem("pfp", pfp);
     };
-    r.readAsDataURL(inp.files[0]);
+
+    reader.readAsDataURL(file);
   };
-  inp.click();
+
+  picker.click();
 }
 
-/* REPLY */
-let replyTo = null;
-window.setReply = (text) => {
-  replyTo = text;
-  replyBar.style.display = "block";
-  replyBar.innerText = "Replying: " + text;
-};
-
-/* SEND */
+/* ---------------- SEND MESSAGE ---------------- */
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -212,76 +205,39 @@ function sendMsg() {
     type: "text",
     text,
     user: username,
-    pfp,
+    pfp: pfp || "",
     time: Date.now(),
-    reply: replyTo,
     reactions: {},
     seenBy: [username]
   });
 
   input.value = "";
-  replyBar.style.display = "none";
-  replyTo = null;
 }
 
-/* DELETE */
-window.deleteMsg = (id, user) => {
-  if (user !== username && !admins.includes(username)) return;
+/* ---------------- DELETE ---------------- */
+window.deleteMsg = (id, msgUser) => {
+  if (msgUser !== username) {
+    alert("You can only delete your own messages!");
+    return;
+  }
   db.collection("messages").doc(id).delete();
 };
 
-/* FILE */
-fileInput.onchange = () => {
-  const file = fileInput.files[0];
-  const reader = new FileReader();
+/* ---------------- REACTIONS ---------------- */
+window.react = (id, emoji) => {
+  const ref = db.collection("messages").doc(id);
 
-  reader.onload = () => {
-    let type = "file";
-    if (file.type.startsWith("image")) type = "image";
-    if (file.type === "application/pdf") type = "pdf";
+  ref.get().then(doc => {
+    let data = doc.data();
+    let reactions = data.reactions || {};
 
-    db.collection("messages").add({
-      type,
-      data: reader.result,
-      fileName: file.name,
-      user: username,
-      pfp,
-      time: Date.now()
-    });
-  };
+    reactions[emoji] = (reactions[emoji] || 0) + 1;
 
-  reader.readAsDataURL(file);
+    ref.update({ reactions });
+  });
 };
 
-/* VOICE */
-function startVoice() {
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    const rec = new MediaRecorder(stream);
-    let chunks = [];
-
-    rec.ondataavailable = e => chunks.push(e.data);
-
-    rec.onstop = () => {
-      const blob = new Blob(chunks);
-      const r = new FileReader();
-      r.onload = () => {
-        db.collection("messages").add({
-          type: "voice",
-          audio: r.result,
-          user: username,
-          pfp,
-          time: Date.now()
-        });
-      };
-      r.readAsDataURL(blob);
-    };
-
-    rec.start();
-    setTimeout(() => rec.stop(), 4000);
-  });
-}
-
-/* LOAD CHAT */
+/* ---------------- LOAD CHAT ---------------- */
 db.collection("messages")
 .orderBy("time")
 .onSnapshot(snap => {
@@ -295,7 +251,7 @@ db.collection("messages")
     const div = document.createElement("div");
 
     if (msg.type === "system") {
-      div.className = "system";
+      div.className = "msg system";
       div.innerText = msg.text;
       chat.appendChild(div);
       return;
@@ -305,22 +261,33 @@ db.collection("messages")
 
     let html = `
       <div class="nameRow">
-        <img class="pfp" src="${msg.pfp || ''}">
+        <img class="pfp" src="${msg.pfp || 'https://i.imgur.com/6VBx3io.png'}">
         <span>${msg.user}</span>
       </div>
     `;
 
-    if (msg.reply) html += `<div style="font-size:11px;opacity:0.7;">↩ ${msg.reply}</div>`;
-    if (msg.text) html += msg.text;
+    html += msg.text;
 
-    if (msg.type === "image") html += `<img src="${msg.data}">`;
-    if (msg.type === "pdf") html += `<a href="${msg.data}" target="_blank">${msg.fileName}</a>`;
-    if (msg.type === "voice") html += `<audio controls src="${msg.audio}"></audio>`;
+    /* REACTIONS DISPLAY */
+    if (msg.reactions) {
+      html += `<div class="reactions">`;
+      for (let r in msg.reactions) {
+        html += `<span class="reaction-bubble">${r} ${msg.reactions[r]}</span>`;
+      }
+      html += `</div>`;
+    }
 
     html += `
       <div class="time">${new Date(msg.time).toLocaleTimeString()}</div>
+
+      <div class="reactions">
+        <span onclick="react('${id}','🔥')">🔥</span>
+        <span onclick="react('${id}','❤️')">❤️</span>
+        <span onclick="react('${id}','😂')">😂</span>
+        <span onclick="react('${id}','👍')">👍</span>
+      </div>
+
       <button onclick="deleteMsg('${id}','${msg.user}')">🗑</button>
-      <button onclick="setReply('${msg.text || "file"}')">↩</button>
     `;
 
     div.innerHTML = html;
@@ -332,4 +299,4 @@ db.collection("messages")
 </script>
 
 </body>
-  </html>
+</html>
