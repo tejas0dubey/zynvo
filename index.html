@@ -106,32 +106,6 @@
       background: #00a884;
       color: white;
       cursor: pointer;
-      font-size: 16px;
-    }
-
-    img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 5px;
-    }
-
-    a {
-      color: #53bdeb;
-    }
-
-    .replyBox {
-      font-size: 11px;
-      opacity: 0.7;
-      border-left: 2px solid #00a884;
-      padding-left: 6px;
-      margin-bottom: 5px;
-    }
-
-    .deleteBtn {
-      font-size: 11px;
-      opacity: 0.6;
-      cursor: pointer;
-      margin-top: 5px;
     }
 
     .topBar {
@@ -148,33 +122,30 @@
       cursor: pointer;
     }
 
-    /* INTRO + LOGIN */
     #introScreen, #loginScreen {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #0b141a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      z-index: 999;
-      text-align: center;
-      padding: 20px;
+      top:0;left:0;width:100%;height:100%;
+      background:#0b141a;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      flex-direction:column;
+      z-index:999;
+      gap:20px;
+      text-align:center;
     }
 
-    #loginScreen { display: none; }
+    #loginScreen { display:none; }
 
     .bigBtn {
-      padding: 15px 30px;
-      font-size: 18px;
-      border: none;
-      border-radius: 30px;
-      background: #00a884;
-      color: white;
-      cursor: pointer;
-      margin-top: 15px;
-      width: 260px;
+      padding:15px 30px;
+      font-size:18px;
+      border-radius:30px;
+      border:none;
+      background:#00a884;
+      color:white;
+      cursor:pointer;
+      width:260px;
     }
   </style>
 </head>
@@ -184,15 +155,13 @@
 <!-- INTRO -->
 <div id="introScreen">
   <h1>Welcome to Zynvo 💬</h1>
-  <p style="opacity:0.7;max-width:300px;">
-    Real-time chat, file sharing, replies, and more — all in one place.
-  </p>
+  <p style="opacity:0.7;">Chat, share files, reply & connect instantly.</p>
   <button class="bigBtn" onclick="showLogin()">Get Started</button>
 </div>
 
 <!-- LOGIN -->
 <div id="loginScreen">
-  <h2>Sign in to continue</h2>
+  <h2>Sign in</h2>
   <button class="bigBtn" onclick="googleLogin()">Continue with Google</button>
 </div>
 
@@ -213,42 +182,57 @@
 </div>
 
 <script>
-firebase.initializeApp({
+// 🔐 LOGIN PROJECT
+const firebaseConfigAuth = {
+  apiKey: "AIzaSyD9xMic7Z0-JBZUUVai22Dm2fNTVeYONfU",
+  authDomain: "zynvo-login-sys.firebaseapp.com",
+  projectId: "zynvo-login-sys"
+};
+
+// 💬 CHAT PROJECT (OLD)
+const firebaseConfigChat = {
   apiKey: "AIzaSyClBExlspVJUUNf3XQuwgh-rN8JHsC4F1w",
   authDomain: "anantdhamchat.firebaseapp.com",
   projectId: "anantdhamchat"
-});
+};
 
-const db = firebase.firestore();
-const auth = firebase.auth();
+// INIT APPS
+const appAuth = firebase.initializeApp(firebaseConfigAuth);
+const appChat = firebase.initializeApp(firebaseConfigChat, "chatApp");
 
+// SERVICES
+const auth = firebase.auth(appAuth);
+const db = firebase.firestore(appChat);
+
+// ELEMENTS
 const chat = document.getElementById("chat");
 const input = document.getElementById("msgInput");
 const fileInput = document.getElementById("fileInput");
 
+// USER
 let username = "";
 let pfp = "";
 
-/* INTRO FLOW */
+// INTRO FLOW
 function showLogin() {
-  document.getElementById("introScreen").style.display = "none";
-  document.getElementById("loginScreen").style.display = "flex";
+  introScreen.style.display = "none";
+  loginScreen.style.display = "flex";
 }
 
-/* LOGIN */
+// GOOGLE LOGIN
 function googleLogin() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider);
 }
 
-/* AUTH */
+// AUTH STATE
 auth.onAuthStateChanged(user => {
   if (user) {
     username = user.displayName;
     pfp = user.photoURL;
 
-    document.getElementById("introScreen").style.display = "none";
-    document.getElementById("loginScreen").style.display = "none";
+    introScreen.style.display = "none";
+    loginScreen.style.display = "none";
 
     db.collection("messages").add({
       type: "system",
@@ -258,7 +242,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-/* PROFILE PIC */
+// PROFILE PIC
 function changePfp() {
   const inp = document.createElement("input");
   inp.type = "file";
@@ -270,7 +254,7 @@ function changePfp() {
 
     reader.onload = () => {
       pfp = reader.result;
-      alert("Profile picture updated!");
+      alert("Profile updated!");
     };
 
     reader.readAsDataURL(file);
@@ -279,11 +263,11 @@ function changePfp() {
   inp.click();
 }
 
-/* REPLY */
+// REPLY
 let replyTo = null;
 function setReply(text) { replyTo = text; }
 
-/* SEND */
+// SEND MESSAGE (UNCHANGED)
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -301,13 +285,13 @@ function sendMsg() {
   replyTo = null;
 }
 
-/* DELETE */
+// DELETE
 window.deleteMsg = (id, user) => {
   if (user !== username) return;
   db.collection("messages").doc(id).delete();
 };
 
-/* FILE */
+// FILE
 function pickFile() { fileInput.click(); }
 
 fileInput.onchange = () => {
@@ -332,7 +316,7 @@ fileInput.onchange = () => {
   reader.readAsDataURL(file);
 };
 
-/* LOAD CHAT */
+// LOAD CHAT (ORIGINAL LOGIC)
 db.collection("messages")
 .orderBy("time")
 .onSnapshot(snap => {
